@@ -6,6 +6,8 @@ import requests
 import json
 from threading import Thread, Event
 import time
+import os
+import random
 
 class ScrollableText(tk.Frame):
     def __init__(self, master, **kwargs):
@@ -107,10 +109,107 @@ class CustomTitlebar(tk.Frame):
     def exit(self):
         root.destroy()
 
+class Sidebar(tk.Frame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.configure(bg="#151A22")
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.chats = []
+        self.chat_buttons = []
+
+        self.load_chats()
+
+        self.add_button = tk.Button(self, text="Add Chat", command=self.add_chat)
+        self.add_button.grid(row=0, column=0)
+
+        self.chat_frame = tk.Frame(self, bg="#151A22")
+        self.chat_frame.grid(row=1, column=0)
+
+        self.display_chats()
+
+    def load_chats(self):
+        for file in os.listdir("."):
+            if file.startswith("chat_") and file.endswith(".json"):
+                with open(file, "r") as f:
+                    chat = json.load(f)
+                    self.chats.append((file, chat))
+
+    def display_chats(self):
+        for widget in self.chat_frame.winfo_children():
+            widget.destroy()
+
+        for i, (file, chat) in enumerate(self.chats):
+            first_message = chat[0]["user"]
+            first_message = first_message[:50] + "..."
+            button = tk.Button(self.chat_frame, text=first_message, command=lambda file=file: self.select_chat(file))
+            button.grid(row=i, column=0)
+
+    def add_chat(self):
+        chat_name = "Chat " + str(len(self.chats) + 1)
+        self.chats.append((chat_name, []))
+        self.display_chats()
+
+    def select_chat(self, file):
+        global current_chat, conversation
+        # Clear the chatbox
+        chatbox.clear()
+        # Load the chat history from file
+        with open(file, "r") as f:
+            conversation = json.load(f)
+            for msg in conversation:
+                if msg["role"] == "user":
+                    chatbox.add_message("User:\n" + msg["content"] + "\n\n", "user")
+                elif msg["role"] == "assistant":
+                    chatbox.add_message("Assistant:\n" + msg["content"] + "\n\n", "assistant")
+        current_chat = file
+
+class SettingsSidebar(tk.Frame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.configure(bg="#151A22")
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.temperature = tk.StringVar(value="0.8")
+        self.top_k = tk.StringVar(value="40")
+        self.top_p = tk.StringVar(value="0.95")
+        self.repetition_penalty = tk.StringVar(value="1.1")
+
+        self.temperature_label = tk.Label(self, text="Temperature:", bg="#151A22", fg="#C7C5B8")
+        self.temperature_label.grid(row=0, column=0)
+        self.temperature_slider = tk.Scale(self, from_=0, to=1, resolution=0.1, orient="horizontal", variable=self.temperature)
+        self.temperature_slider.grid(row=1, column=0)
+
+        self.top_k_label = tk.Label(self, text="Top K:", bg="#151A22", fg="#C7C5B8")
+        self.top_k_label.grid(row=2, column=0)
+        self.top_k_slider = tk.Scale(self, from_=1, to=100, orient="horizontal", variable=self.top_k)
+        self.top_k_slider.grid(row=3, column=0)
+
+        self.top_p_label = tk.Label(self, text="Top P:", bg="#151A22", fg="#C7C5B8")
+        self.top_p_label.grid(row=4, column=0)
+        self.top_p_slider = tk.Scale(self, from_=0, to=1, resolution=0.01, orient="horizontal", variable=self.top_p)
+        self.top_p_slider.grid(row=5, column=0)
+
+        self.repetition_penalty_label = tk.Label(self, text="Repetition Penalty:", bg="#151A22", fg="#C7C5B8")
+        self.repetition_penalty_label.grid(row=6, column=0)
+        self.repetition_penalty_slider = tk.Scale(self, from_=0, to=2, resolution=0.1, orient="horizontal", variable=self.repetition_penalty)
+        self.repetition_penalty_slider.grid(row=7, column=0)
+
+    def get_settings(self):
+        return {
+            "temperature": float(self.temperature.get()),
+            "top_k": int(self.top_k.get()),
+            "top_p": float(self.top_p.get()),
+            "repetition_penalty": float(self.repetition_penalty.get())
+        }
+
 # Global flag to control the assistant's response streaming
 stop_event = Event()
 
 def send_message(event=None):
+    global conversation, current_chat
     user_msg = entry.get("1.0", "end-1c").strip()
     if not user_msg:
         return
@@ -133,10 +232,7 @@ def send_message(event=None):
         "stream": True,
         "messages": messages,
         "max_new_tokens": 0,
-        "top_k": 40,
-        "top_p": 0.95,
-        "temperature": 0.8,
-        "repetition_penalty": 1.1
+        **settings_sidebar.get_settings()
     }
 
     def process_stream():
@@ -166,8 +262,15 @@ def send_message(event=None):
 
         chatbox.add_message("\n", "assistant")  # Add a newline after the assistant's message
         conversation.append({"user": user_msg, "assistant": assistant_msg})
-        with open("conversation.json", "w") as f:
-            json.dump(conversation, f, indent=4)
+        if not current_chat:
+            filename = f"chat_{user_msg[:50]}_{random.randint(1000, 9999)}.json"
+            sidebar.chats.append((filename, conversation))
+            sidebar.display_chats()
+            with open(filename, "w") as f:
+                json.dump(conversation, f, indent=4)
+        else:
+            with open(current_chat, "w") as f:
+                json.dump(conversation, f, indent=4)
 
         update_button()
 
@@ -185,37 +288,64 @@ def stop_assistant():
 def update_button():
     send_button.config(text="Send", command=send_message)
 
+def toggle_sidebar():
+    global current_chat, conversation
+    if sidebar.grid_info():
+        sidebar.grid_remove()
+    else:
+        sidebar.grid(row=1, column=0, sticky="ns")
+        if current_chat:
+            with open(current_chat, "r") as f:
+                conversation.clear()
+                conversation.extend(json.load(f))
+
+def toggle_settings_sidebar():
+    if settings_sidebar.grid_info():
+        settings_sidebar.grid_remove()
+    else:
+        settings_sidebar.grid(row=1, column=2, sticky="ns")
+
 root = tk.Tk()
 root.title("Chat with Assistant")
 root.configure(bg="#151A22")
 root.overrideredirect(True)
 
 titlebar = CustomTitlebar(root)
-titlebar.grid(row=0, column=0, sticky="ew")
+titlebar.grid(row=0, column=0, columnspan=3, sticky="ew")
 
 root.grid_rowconfigure(1, weight=1)
 root.grid_rowconfigure(2, weight=0)
 root.grid_rowconfigure(3, weight=0)
 root.grid_columnconfigure(0, weight=1)
+root.grid_columnconfigure(1, weight=3)
+root.grid_columnconfigure(2, weight=1)
+
+sidebar = Sidebar(root)
+sidebar.grid(row=1, column=0, sticky="ns")
 
 chatbox = ScrollableText(root)
-chatbox.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+chatbox.grid(row=1, column=1, padx=10, pady=10, sticky="nsew")
 
 # Configure tags for user and assistant messages
 chatbox.text.tag_configure("user", background="#1A2027", foreground="#C7C5B8", lmargin1=10, lmargin2=10)
 chatbox.text.tag_configure("assistant", background="#1A2027", foreground="#C7C5B8", lmargin1=10, lmargin2=10)
 
 entry = tk.Text(root, height=5, wrap="word", bg="#363F4A", fg="#C7C5B8")
-entry.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
 entry.bind("<Return>", lambda e: send_message() if not e.state & 0x1 else None)  # Send on Enter, newline on Shift+Enter
 
 send_button = tk.Button(root, text="Send", command=send_message, bg="#363F4A", fg="#C7C5B8")
-send_button.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
+send_button.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
 
-# Add a button to toggle autoscrolling
-toggle_scroll_button = tk.Button(root, text="Toggle Autoscroll", command=chatbox.toggle_autoscroll, bg="#363F4A", fg="#C7C5B8")
-toggle_scroll_button.grid(row=4, column=0, padx=10, pady=10, sticky="ew")
+settings_sidebar = SettingsSidebar(root)
+
+sidebar_toggle_button = tk.Button(root, text="Toggle Sidebar", command=toggle_sidebar, bg="#363F4A", fg="#C7C5B8")
+sidebar_toggle_button.grid(row=4, column=0, padx=10, pady=10, sticky="ew")
+
+settings_toggle_button = tk.Button(root, text="Toggle Settings", command=toggle_settings_sidebar, bg="#363F4A", fg="#C7C5B8")
+settings_toggle_button.grid(row=4, column=2, padx=10, pady=10, sticky="ew")
 
 conversation = []
+current_chat = None
 
 root.mainloop()
