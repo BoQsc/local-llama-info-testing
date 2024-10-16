@@ -20,17 +20,26 @@ class ScrollableText(tk.Frame):
         self.scrollbar.grid(row=0, column=1, sticky="ns")
 
         self.text.configure(yscrollcommand=self.scrollbar.set)
+        
+        # Track whether autoscrolling is enabled
+        self.autoscroll = True
 
     def add_message(self, message, tag):
         self.text.configure(state="normal")
         self.text.insert("end", message, tag)
         self.text.configure(state="disabled")
-        self.text.see("end")
+        
+        # Autoscroll to the bottom if enabled
+        if self.autoscroll:
+            self.text.see("end")
 
     def clear(self):
         self.text.configure(state="normal")
         self.text.delete("1.0", "end")
         self.text.configure(state="disabled")
+
+    def toggle_autoscroll(self):
+        self.autoscroll = not self.autoscroll
 
 # Function to send user message and process assistant's response
 def send_message(event=None):
@@ -45,7 +54,7 @@ def send_message(event=None):
     headers = {"Content-Type": "application/json"}
     
     # Prepare the message history for the API call
-    messages = [{"role": "system", "content": " "}]
+    messages = [{"role": "system", "content": "You are an assistant."}]
     for msg in conversation:
         messages.append({"role": "user", "content": msg["user"]})
         messages.append({"role": "assistant", "content": msg["assistant"]})
@@ -129,6 +138,10 @@ entry.bind("<Return>", lambda e: send_message() if not e.state & 0x1 else None) 
 
 send_button = tk.Button(root, text="Send", command=send_message)
 send_button.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+
+# Add a button to toggle autoscrolling
+toggle_scroll_button = tk.Button(root, text="Toggle Autoscroll", command=chatbox.toggle_autoscroll)
+toggle_scroll_button.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
 
 conversation = []
 
