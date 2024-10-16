@@ -15,7 +15,7 @@ class ScrollableText(tk.Frame):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        self.text = tk.Text(self, wrap="word", font=("Arial", 12), bg="#1A2027", fg="#C7C5B8")
+        self.text = tk.Text(self, wrap="word", font=("Arial", 12))
         self.text.grid(row=0, column=0, sticky="nsew")
 
         self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.text.yview)
@@ -50,7 +50,7 @@ def send_message(event=None):
         return
 
     entry.delete("1.0", "end")
-    chatbox.add_message(f"User:\n{user_msg}\n\n", "user")
+    chatbox.add_message(f"User: {user_msg}\n", "user")
 
     url = "http://localhost:8080/v1/chat/completions"
     headers = {"Content-Type": "application/json"}
@@ -74,8 +74,8 @@ def send_message(event=None):
     }
 
     def process_stream():
-        assistant_msg = ""
-        chatbox.add_message("Assistant:\n", "assistant")
+        assistant_msg = "Assistant: "
+        chatbox.add_message(assistant_msg, "assistant")
         try:
             with requests.post(url, headers=headers, json=data, stream=True) as response:
                 for line in response.iter_lines(decode_unicode=True):
@@ -121,7 +121,6 @@ def update_button():
 
 root = tk.Tk()
 root.title("Chat with Assistant")
-root.configure(bg="#151A22")
 
 root.grid_rowconfigure(0, weight=1)
 root.grid_rowconfigure(1, weight=0)
@@ -132,18 +131,18 @@ chatbox = ScrollableText(root)
 chatbox.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
 # Configure tags for user and assistant messages
-chatbox.text.tag_configure("user", background="#1A2027", foreground="#C7C5B8", lmargin1=10, lmargin2=10)
-chatbox.text.tag_configure("assistant", background="#1A2027", foreground="#C7C5B8", lmargin1=10, lmargin2=10)
+chatbox.text.tag_configure("user", background="#d1e7dd", lmargin1=10, lmargin2=10)
+chatbox.text.tag_configure("assistant", background="#f8d7da", lmargin1=10, lmargin2=10)
 
-entry = tk.Text(root, height=5, wrap="word", bg="#363F4A", fg="#C7C5B8")
+entry = tk.Text(root, height=5, wrap="word")
 entry.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
 entry.bind("<Return>", lambda e: send_message() if not e.state & 0x1 else None)  # Send on Enter, newline on Shift+Enter
 
-send_button = tk.Button(root, text="Send", command=send_message, bg="#363F4A", fg="#C7C5B8")
+send_button = tk.Button(root, text="Send", command=send_message)
 send_button.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
 
 # Add a button to toggle autoscrolling
-toggle_scroll_button = tk.Button(root, text="Toggle Autoscroll", command=chatbox.toggle_autoscroll, bg="#363F4A", fg="#C7C5B8")
+toggle_scroll_button = tk.Button(root, text="Toggle Autoscroll", command=chatbox.toggle_autoscroll)
 toggle_scroll_button.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
 
 conversation = []
