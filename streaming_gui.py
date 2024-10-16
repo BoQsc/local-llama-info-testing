@@ -121,6 +121,10 @@ class Sidebar(tk.Frame):
 
         self.load_chats()
 
+        new_chat_button = tk.Button(root, text="New Chat", command=self.new_chat, bg="#363F4A", fg="#C7C5B8")
+        new_chat_button.grid(row=5, column=0, padx=10, pady=10, sticky="ew")
+
+
         self.add_button = tk.Button(self, text="Add Chat", command=self.add_chat)
         self.add_button.grid(row=0, column=0)
 
@@ -128,6 +132,15 @@ class Sidebar(tk.Frame):
         self.chat_frame.grid(row=1, column=0)
 
         self.display_chats()
+
+    def new_chat(self):
+        global conversation, current_chat
+        conversation = []
+        current_chat = None
+        chatbox.clear()
+        entry.delete("1.0", "end")
+        sidebar.chats = []
+        sidebar.display_chats()
 
     def load_chats(self):
         for file in os.listdir("."):
@@ -141,7 +154,13 @@ class Sidebar(tk.Frame):
             widget.destroy()
 
         for i, (file, chat) in enumerate(self.chats):
-            first_message = chat[0]["user"]
+            if len(chat) > 0:
+                if "role" in chat[0]:
+                    first_message = chat[0]["content"]
+                else:
+                    first_message = chat[0]["user"]
+            else:
+                first_message = "Empty Chat"
             first_message = first_message[:50] + "..."
             button = tk.Button(self.chat_frame, text=first_message, command=lambda file=file: self.select_chat(file))
             button.grid(row=i, column=0)
@@ -155,14 +174,23 @@ class Sidebar(tk.Frame):
         global current_chat, conversation
         # Clear the chatbox
         chatbox.clear()
-        # Load the chat history from file
-        with open(file, "r") as f:
-            conversation = json.load(f)
-            for msg in conversation:
-                if msg["role"] == "user":
-                    chatbox.add_message("User:\n" + msg["content"] + "\n\n", "user")
-                elif msg["role"] == "assistant":
-                    chatbox.add_message("Assistant:\n" + msg["content"] + "\n\n", "assistant")
+        try:
+            # Load the chat history from file
+            with open(file, "r") as f:
+                conversation = json.load(f)
+                for msg in conversation:
+                    if "role" in msg:
+                        if msg["role"] == "user":
+                            chatbox.add_message("User:\n" + msg["content"] + "\n\n", "user")
+                        elif msg["role"] == "assistant":
+                            chatbox.add_message("Assistant:\n" + msg["content"] + "\n\n", "assistant")
+                    elif "user" in msg and "assistant" in msg:
+                        chatbox.add_message("User:\n" + msg["user"] + "\n\n", "user")
+                        chatbox.add_message("Assistant:\n" + msg["assistant"] + "\n\n", "assistant")
+        except json.JSONDecodeError:
+            print("Error: Unable to load chat history from JSON file.")
+        except KeyError:
+            print("Error: Unexpected JSON file format.")
         current_chat = file
 
 class SettingsSidebar(tk.Frame):
@@ -176,6 +204,7 @@ class SettingsSidebar(tk.Frame):
         self.top_k = tk.StringVar(value="40")
         self.top_p = tk.StringVar(value="0.95")
         self.repetition_penalty = tk.StringVar(value="1.1")
+        self.auto_stop = tk.StringVar(value="</s>")
 
         self.temperature_label = tk.Label(self, text="Temperature:", bg="#151A22", fg="#C7C5B8")
         self.temperature_label.grid(row=0, column=0)
@@ -197,12 +226,18 @@ class SettingsSidebar(tk.Frame):
         self.repetition_penalty_slider = tk.Scale(self, from_=0, to=2, resolution=0.1, orient="horizontal", variable=self.repetition_penalty)
         self.repetition_penalty_slider.grid(row=7, column=0)
 
+        self.auto_stop_label = tk.Label(self, text="Auto-stop:", bg="#151A22", fg="#C7C5B8")
+        self.auto_stop_label.grid(row=8, column=0)
+        self.auto_stop_entry = tk.Entry(self, textvariable=self.auto_stop)
+        self.auto_stop_entry.grid(row=9, column=0)
+
     def get_settings(self):
         return {
             "temperature": float(self.temperature.get()),
             "top_k": int(self.top_k.get()),
             "top_p": float(self.top_p.get()),
-            "repetition_penalty": float(self.repetition_penalty.get())
+            "repetition_penalty": float(self.repetition_penalty.get()),
+            "auto_stop": self.auto_stop.get()
         }
 
 # Global flag to control the assistant's response streaming
@@ -223,8 +258,11 @@ def send_message(event=None):
     # Prepare the message history for the API call
     messages = [{"role": "system", "content": "You are an assistant."}]
     for msg in conversation:
-        messages.append({"role": "user", "content": msg["user"]})
-        messages.append({"role": "assistant", "content": msg["assistant"]})
+        if "role" in msg:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+        elif "user" in msg and "assistant" in msg:
+            messages.append({"role": "user", "content": msg["user"]})
+            messages.append({"role": "assistant", "content": msg["assistant"]})
 
     messages.append({"role": "user", "content": user_msg})
     
@@ -254,6 +292,8 @@ def send_message(event=None):
                                 content = delta.get("content", "")
                                 if content:
                                     assistant_msg += content
+                                    if settings_sidebar.get_settings()["auto_stop"] in assistant_msg:
+                                        stop_event.set()
                                     update_chatbox(content, "assistant")
                         except json.JSONDecodeError:
                             print(f"Error decoding JSON: {line}")
@@ -261,7 +301,10 @@ def send_message(event=None):
             update_chatbox(f"Error: {str(e)}\n", "assistant")
 
         chatbox.add_message("\n", "assistant")  # Add a newline after the assistant's message
-        conversation.append({"user": user_msg, "assistant": assistant_msg})
+        if "role" in conversation[0]:
+            conversation.append({"role": "assistant", "content": assistant_msg})
+        else:
+            conversation.append({"assistant": assistant_msg})
         if not current_chat:
             filename = f"chat_{user_msg[:50]}_{random.randint(1000, 9999)}.json"
             sidebar.chats.append((filename, conversation))
