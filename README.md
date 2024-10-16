@@ -1,5 +1,7 @@
 # local-llama-info-testing
 
+Note: llamafile seems to be censoring, maybe system prompt needs to be changed.
+
 https://github.com/Mozilla-Ocho/llamafile/releases
 ```
 llamafile-0.8.14 -m ana-v1-m7.Q2_K.gguf
