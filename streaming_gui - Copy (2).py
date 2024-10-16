@@ -1,0 +1,173 @@
+import tkinter as tk
+from tkinter import ttk
+import requests
+import json
+from threading import Thread, Event
+
+# Global flag to control the assistant's response streaming
+stop_event = Event()
+
+class ScrollableText(tk.Frame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+
+        # Create a canvas for scrolling
+        self.canvas = tk.Canvas(self, borderwidth=0)
+        self.frame = tk.Frame(self.canvas)
+
+        # Add a scrollbar to the canvas
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Configure the layout
+        self.scrollbar.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.canvas.create_window((0, 0), window=self.frame, anchor="nw")
+
+        self.frame.bind("<Configure>", self.on_frame_configure)
+
+        self.user_listbox = tk.Listbox(self.frame, width=15, font=("Arial", 12), activestyle='none')
+        self.user_listbox.grid(row=0, column=0, sticky="ns")
+        
+        self.text = tk.Text(self.frame, wrap="word", font=("Arial", 12))
+        self.text.grid(row=0, column=1, sticky="nsew")
+
+        self.frame.grid_rowconfigure(0, weight=1)
+        self.frame.grid_columnconfigure(1, weight=1)
+
+        # Track whether autoscrolling is enabled
+        self.autoscroll = True
+
+    def on_frame_configure(self, event):
+        # Update the scroll region
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def add_message(self, message, tag):
+        self.text.configure(state="normal")
+        self.text.insert("end", message)
+        self.text.configure(state="disabled")
+        
+        # Autoscroll to the bottom if enabled
+        if self.autoscroll:
+            self.text.see("end")
+
+    def add_user(self, user):
+        self.user_listbox.insert("end", user)
+
+    def clear(self):
+        self.text.configure(state="normal")
+        self.text.delete("1.0", "end")
+        self.text.configure(state="disabled")
+        self.user_listbox.delete(0, "end")
+
+    def toggle_autoscroll(self):
+        self.autoscroll = not self.autoscroll
+
+# Function to send user message and process assistant's response
+def send_message(event=None):
+    user_msg = entry.get("1.0", "end-1c").strip()
+    if not user_msg:
+        return
+
+    entry.delete("1.0", "end")
+    chatbox.add_user("User")
+    chatbox.add_message(user_msg + "\n", "user")
+
+    url = "http://localhost:8080/v1/chat/completions"
+    headers = {"Content-Type": "application/json"}
+    
+    # Prepare the message history for the API call
+    messages = [{"role": "system", "content": "You are an assistant."}]
+    for msg in conversation:
+        messages.append({"role": "user", "content": msg["user"]})
+        messages.append({"role": "assistant", "content": msg["assistant"]})
+
+    messages.append({"role": "user", "content": user_msg})
+    
+    data = {
+        "stream": True,
+        "messages": messages,
+        "max_new_tokens": 0,
+        "top_k": 40,
+        "top_p": 0.95,
+        "temperature": 0.8,
+        "repetition_penalty": 1.1
+    }
+
+    def process_stream():
+        assistant_msg = ""
+        chatbox.add_user("Assistant")
+        chatbox.add_message("Assistant: ", "assistant")
+        try:
+            with requests.post(url, headers=headers, json=data, stream=True) as response:
+                for line in response.iter_lines(decode_unicode=True):
+                    if stop_event.is_set():
+                        break
+                    if line.strip():
+                        if line.startswith("data: "):
+                            line = line[len("data: "):]
+                        try:
+                            json_line = json.loads(line)
+                            choices = json_line.get("choices", [])
+                            for choice in choices:
+                                delta = choice.get("delta", {})
+                                content = delta.get("content", "")
+                                if content:
+                                    assistant_msg += content
+                                    update_chatbox(content, "assistant")
+                        except json.JSONDecodeError:
+                            print(f"Error decoding JSON: {line}")
+        except Exception as e:
+            update_chatbox(f"Error: {str(e)}\n", "assistant")
+
+        chatbox.add_message("\n", "assistant")  # Add a newline after the assistant's message
+        conversation.append({"user": user_msg, "assistant": assistant_msg})
+        with open("conversation.json", "w") as f:
+            json.dump(conversation, f, indent=4)
+
+        update_button()
+
+    def update_chatbox(content, sender):
+        chatbox.add_message(content, "assistant")
+
+    stop_event.clear()
+    send_button.config(text="Stop", command=stop_assistant)
+    Thread(target=process_stream).start()
+
+def stop_assistant():
+    stop_event.set()
+    update_button()
+
+def update_button():
+    send_button.config(text="Send", command=send_message)
+
+root = tk.Tk()
+root.title("Chat with Assistant")
+
+root.grid_rowconfigure(0, weight=1)
+root.grid_rowconfigure(1, weight=0)
+root.grid_rowconfigure(2, weight=0)
+root.grid_columnconfigure(0, weight=0)
+root.grid_columnconfigure(1, weight=1)
+
+chatbox = ScrollableText(root)
+chatbox.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
+
+# Configure tags for user and assistant messages
+chatbox.text.tag_configure("user", background="#d1e7dd", lmargin1=10, lmargin2=10)
+chatbox.text.tag_configure("assistant", background="#f8d7da", lmargin1=10, lmargin2=10)
+
+entry = tk.Text(root, height=5, wrap="word")
+entry.grid(row=1, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
+entry.bind("<Return>", lambda e: send_message() if not e.state & 0x1 else None)  # Send on Enter, newline on Shift+Enter
+
+send_button = tk.Button(root, text="Send", command=send_message)
+send_button.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+
+# Add a button to toggle autoscrolling
+toggle_scroll_button = tk.Button(root, text="Toggle Autoscroll", command=chatbox.toggle_autoscroll)
+toggle_scroll_button.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
+
+conversation = []
+
+root.mainloop()
