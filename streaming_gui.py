@@ -45,7 +45,7 @@ def send_message(event=None):
     headers = {"Content-Type": "application/json"}
     
     # Prepare the message history for the API call
-    messages = [{"role": "system", "content": "You are an assistant."}]
+    messages = [{"role": "system", "content": " "}]
     for msg in conversation:
         messages.append({"role": "user", "content": msg["user"]})
         messages.append({"role": "assistant", "content": msg["assistant"]})
