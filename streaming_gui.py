@@ -5,9 +5,7 @@ from tkinter import ttk
 import requests
 import json
 from threading import Thread, Event
-
-# Global flag to control the assistant's response streaming
-stop_event = Event()
+import time
 
 class ScrollableText(tk.Frame):
     def __init__(self, master, **kwargs):
@@ -43,7 +41,75 @@ class ScrollableText(tk.Frame):
     def toggle_autoscroll(self):
         self.autoscroll = not self.autoscroll
 
-# Function to send user message and process assistant's response
+class CustomTitlebar(tk.Frame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.configure(bg="#151A22")
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.title_label = tk.Label(self, text="Chat with Assistant", bg="#151A22", fg="#C7C5B8")
+        self.title_label.grid(row=0, column=0)
+
+        self.minimize_button = tk.Button(self, text="_", bg="#151A22", fg="#C7C5B8", command=self.minimize)
+        self.minimize_button.grid(row=0, column=1)
+
+        self.full_screen_button = tk.Button(self, text="[]", bg="#151A22", fg="#C7C5B8", command=self.full_screen)
+        self.full_screen_button.grid(row=0, column=2)
+
+        self.exit_button = tk.Button(self, text="X", bg="#151A22", fg="#C7C5B8", command=self.exit)
+        self.exit_button.grid(row=0, column=3)
+
+        self.bind("<Button-1>", self.drag_start)
+        self.bind("<B1-Motion>", self.drag_motion)
+        self.last_click_time = 0
+        self.bind("<Double-Button-1>", self.toggle_full_screen)
+
+        self.is_maximized = False
+
+    def drag_start(self, event):
+        self.x = event.x
+        self.y = event.y
+
+    def drag_motion(self, event):
+        x = event.x + root.winfo_x() - self.x
+        y = event.y + root.winfo_y() - self.y
+        root.geometry(f"+{x}+{y}")
+
+    def toggle_full_screen(self, event):
+        if self.is_maximized:
+            self.minimize()
+        else:
+            self.full_screen()
+
+    def minimize(self):
+        if self.is_maximized:
+            screen_width = 800
+            screen_height = 600
+            x = 100
+            y = 100
+            root.geometry(f"{screen_width}x{screen_height}+{x}+{y}")
+            self.is_maximized = False
+        else:
+            root.overrideredirect(False)
+            root.iconify()
+            root.overrideredirect(True)
+
+    def full_screen(self):
+        if not self.is_maximized:
+            screen_width = root.winfo_screenwidth()
+            screen_height = root.winfo_screenheight()
+            x = 0
+            y = 0
+            root.geometry(f"{screen_width}x{screen_height}+{x}+{y}")
+            self.is_maximized = True
+
+    def exit(self):
+        root.destroy()
+
+# Global flag to control the assistant's response streaming
+stop_event = Event()
+
 def send_message(event=None):
     user_msg = entry.get("1.0", "end-1c").strip()
     if not user_msg:
@@ -122,29 +188,33 @@ def update_button():
 root = tk.Tk()
 root.title("Chat with Assistant")
 root.configure(bg="#151A22")
+root.overrideredirect(True)
 
-root.grid_rowconfigure(0, weight=1)
-root.grid_rowconfigure(1, weight=0)
+titlebar = CustomTitlebar(root)
+titlebar.grid(row=0, column=0, sticky="ew")
+
+root.grid_rowconfigure(1, weight=1)
 root.grid_rowconfigure(2, weight=0)
+root.grid_rowconfigure(3, weight=0)
 root.grid_columnconfigure(0, weight=1)
 
 chatbox = ScrollableText(root)
-chatbox.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+chatbox.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
 
 # Configure tags for user and assistant messages
 chatbox.text.tag_configure("user", background="#1A2027", foreground="#C7C5B8", lmargin1=10, lmargin2=10)
 chatbox.text.tag_configure("assistant", background="#1A2027", foreground="#C7C5B8", lmargin1=10, lmargin2=10)
 
 entry = tk.Text(root, height=5, wrap="word", bg="#363F4A", fg="#C7C5B8")
-entry.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
+entry.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
 entry.bind("<Return>", lambda e: send_message() if not e.state & 0x1 else None)  # Send on Enter, newline on Shift+Enter
 
 send_button = tk.Button(root, text="Send", command=send_message, bg="#363F4A", fg="#C7C5B8")
-send_button.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+send_button.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
 
 # Add a button to toggle autoscrolling
 toggle_scroll_button = tk.Button(root, text="Toggle Autoscroll", command=chatbox.toggle_autoscroll, bg="#363F4A", fg="#C7C5B8")
-toggle_scroll_button.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
+toggle_scroll_button.grid(row=4, column=0, padx=10, pady=10, sticky="ew")
 
 conversation = []
 
