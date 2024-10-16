@@ -1,21 +1,46 @@
 import tkinter as tk
+from tkinter import ttk
 import requests
 import json
-from threading import Thread
+from threading import Thread, Event
+
+# Global flag to control the assistant's response streaming
+stop_event = Event()
+
+class ScrollableText(tk.Frame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.text = tk.Text(self, wrap="word", font=("Arial", 12))
+        self.text.grid(row=0, column=0, sticky="nsew")
+
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.text.yview)
+        self.scrollbar.grid(row=0, column=1, sticky="ns")
+
+        self.text.configure(yscrollcommand=self.scrollbar.set)
+
+    def add_message(self, message, tag):
+        self.text.configure(state="normal")
+        self.text.insert("end", message, tag)
+        self.text.configure(state="disabled")
+        self.text.see("end")
+
+    def clear(self):
+        self.text.configure(state="normal")
+        self.text.delete("1.0", "end")
+        self.text.configure(state="disabled")
 
 # Function to send user message and process assistant's response
-def send_message(event=None):  # Accept event parameter for key binding
-    user_msg = entry.get("1.0", tk.END).strip()  # Get user input
+def send_message(event=None):
+    user_msg = entry.get("1.0", "end-1c").strip()
     if not user_msg:
-        return  # Do nothing if user input is empty
+        return
 
-    # Clear the input field
-    entry.delete("1.0", tk.END)
+    entry.delete("1.0", "end")
+    chatbox.add_message(f"User: {user_msg}\n", "user")
 
-    # Display user message in chatbox
-    display_message("User: " + user_msg + "\n", "user")
-
-    # Prepare the assistant request
     url = "http://localhost:8080/v1/chat/completions"
     headers = {"Content-Type": "application/json"}
     data = {
@@ -31,15 +56,17 @@ def send_message(event=None):  # Accept event parameter for key binding
         "repetition_penalty": 1.1
     }
 
-    # Thread to handle assistant streaming response
     def process_stream():
-        assistant_msg = ""  # Initialize the assistant message
+        assistant_msg = "Assistant: "
+        chatbox.add_message(assistant_msg, "assistant")
         try:
             with requests.post(url, headers=headers, json=data, stream=True) as response:
                 for line in response.iter_lines(decode_unicode=True):
+                    if stop_event.is_set():
+                        break
                     if line.strip():
                         if line.startswith("data: "):
-                            line = line[len("data: "):]  # Remove the prefix
+                            line = line[len("data: "):]
                         try:
                             json_line = json.loads(line)
                             choices = json_line.get("choices", [])
@@ -48,69 +75,55 @@ def send_message(event=None):  # Accept event parameter for key binding
                                 content = delta.get("content", "")
                                 if content:
                                     assistant_msg += content
-                                    update_chatbox(content, "assistant", end_char="")
+                                    update_chatbox(content, "assistant")
                         except json.JSONDecodeError:
                             print(f"Error decoding JSON: {line}")
         except Exception as e:
             update_chatbox(f"Error: {str(e)}\n", "assistant")
 
-        # Save conversation to a JSON file
+        chatbox.add_message("\n", "assistant")  # Add a newline after the assistant's message
         conversation.append({"user": user_msg, "assistant": assistant_msg})
         with open("conversation.json", "w") as f:
             json.dump(conversation, f, indent=4)
 
-    # Function to update chatbox in the main thread
-    def update_chatbox(content, sender, end_char="\n"):
-        display_message(content + end_char, sender)
+        update_button()
 
-    # Run the stream processing in a separate thread
+    def update_chatbox(content, sender):
+        chatbox.add_message(content, sender)
+
+    stop_event.clear()
+    send_button.config(text="Stop", command=stop_assistant)
     Thread(target=process_stream).start()
 
-# Function to display a message in the chatbox
-def display_message(message, sender):
-    chatbox.config(state=tk.NORMAL)
-    
-    # Insert message with proper styling
-    if sender == "user":
-        tag = "user_bubble"
-    else:
-        tag = "assistant_bubble"
-    
-    chatbox.insert(tk.END, message, tag)
-    chatbox.config(state=tk.DISABLED)
-    chatbox.yview(tk.END)  # Auto scroll to the latest message
+def stop_assistant():
+    stop_event.set()
+    update_button()
 
-# Initialize the tkinter window
+def update_button():
+    send_button.config(text="Send", command=send_message)
+
 root = tk.Tk()
 root.title("Chat with Assistant")
 
-# Configure the grid to be responsive
-root.grid_rowconfigure(0, weight=1)  # Chatbox row should expand
-root.grid_rowconfigure(1, weight=0)  # Entry row is fixed
-root.grid_rowconfigure(2, weight=0)  # Button row is fixed
-root.grid_columnconfigure(0, weight=1)  # All content in one column should expand
+root.grid_rowconfigure(0, weight=1)
+root.grid_rowconfigure(1, weight=0)
+root.grid_rowconfigure(2, weight=0)
+root.grid_columnconfigure(0, weight=1)
 
-# Create the chat display box
-chatbox = tk.Text(root, state=tk.DISABLED, wrap=tk.WORD)
-chatbox.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")  # Sticky allows the chatbox to expand
+chatbox = ScrollableText(root)
+chatbox.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
-# Define the tag styles for the bubbles
-chatbox.tag_configure("user_bubble", background="#d1e7dd", foreground="black", lmargin1=10, lmargin2=10, font=("Arial", 12))
-chatbox.tag_configure("assistant_bubble", background="#f8d7da", foreground="black", lmargin1=10, lmargin2=10, font=("Arial", 12))
+# Configure tags for user and assistant messages
+chatbox.text.tag_configure("user", background="#d1e7dd", lmargin1=10, lmargin2=10)
+chatbox.text.tag_configure("assistant", background="#f8d7da", lmargin1=10, lmargin2=10)
 
-# Create the user input box
-entry = tk.Text(root, height=5)
-entry.grid(row=1, column=0, padx=10, pady=10, sticky="ew")  # Sticky allows horizontal resizing
+entry = tk.Text(root, height=5, wrap="word")
+entry.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
+entry.bind("<Return>", lambda e: send_message() if not e.state & 0x1 else None)  # Send on Enter, newline on Shift+Enter
 
-# Bind the "Enter" key to the send_message function
-entry.bind("<Return>", send_message)
-
-# Create the send button
 send_button = tk.Button(root, text="Send", command=send_message)
-send_button.grid(row=2, column=0, padx=10, pady=10, sticky="ew")  # Sticky allows horizontal resizing
+send_button.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
 
-# Initialize conversation list to store chat history
 conversation = []
 
-# Start the tkinter main loop
 root.mainloop()
