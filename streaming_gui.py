@@ -43,12 +43,18 @@ def send_message(event=None):
 
     url = "http://localhost:8080/v1/chat/completions"
     headers = {"Content-Type": "application/json"}
+    
+    # Prepare the message history for the API call
+    messages = [{"role": "system", "content": "You are an assistant."}]
+    for msg in conversation:
+        messages.append({"role": "user", "content": msg["user"]})
+        messages.append({"role": "assistant", "content": msg["assistant"]})
+
+    messages.append({"role": "user", "content": user_msg})
+    
     data = {
         "stream": True,
-        "messages": [
-            {"role": "system", "content": " "},
-            {"role": "user", "content": user_msg}
-        ],
+        "messages": messages,
         "max_new_tokens": 0,
         "top_k": 40,
         "top_p": 0.95,
