@@ -1,7 +1,7 @@
 # local-llama-info-testing
 
 
-#### server with instruction: Response: prompt | Not deepseek related, no way to set custom prompt for llama-server for now.
+#### server with instruction: Response: prompt | Not deepseek related, no way to set custom prompt for llama-server for now. `-p` prompt only works for non-server cli.
 `llamafile --server -m "ana-v1-m7.Q2_K.gguf" --chat-template deepseek`
 
 https://github.com/ggerganov/llama.cpp/wiki/Templates-supported-by-llama_chat_apply_template  
