@@ -237,7 +237,9 @@ class SettingsSidebar(tk.Frame):
 # Global flag to control the assistant's response streaming
 stop_event = Event()
 
+
 def regenerate_message():
+    global conversation, current_chat
     if len(conversation) > 0:
         conversation.pop()
         chatbox.clear()
@@ -246,7 +248,75 @@ def regenerate_message():
                 chatbox.add_message(f"User:\n{msg['user']}\n\n", "user")
             elif "assistant" in msg:
                 chatbox.add_message(f"Assistant:\n{msg['assistant']}\n\n", "assistant")
-        send_message()
+
+        url = "http://localhost:8080/v1/chat/completions"
+        headers = {"Content-Type": "application/json"}
+
+        messages = []
+        for msg in conversation:
+            if "user" in msg:
+                messages.append({"role": "user", "content": msg["user"]})
+            elif "assistant" in msg:
+                messages.append({"role": "assistant", "content": msg["assistant"]})
+
+        data = {
+            "stream": True,
+            "messages": messages,
+            "max_new_tokens": 9000,
+            **settings_sidebar.get_settings()
+        }
+
+        def process_stream():
+            global conversation, current_chat
+            assistant_msg = ""
+            chatbox.add_message("Assistant:\n", "assistant")
+            try:
+                with requests.post(url, headers=headers, json=data, stream=True) as response:
+                    for line in response.iter_lines(decode_unicode=True):
+                        if stop_event.is_set():
+                            break
+                        if line.strip():
+                            if line.startswith("data: "):
+                                line = line[len("data: "):]
+                            try:
+                                json_line = json.loads(line)
+                                choices = json_line.get("choices", [])
+                                for choice in choices:
+                                    delta = choice.get("delta", {})
+                                    content = delta.get("content", "")
+                                    if content:
+                                        assistant_msg += content
+                                        if settings_sidebar.get_settings()["auto_stop"] in assistant_msg:
+                                            stop_event.set()
+                                            assistant_msg = assistant_msg.replace(settings_sidebar.get_settings()["auto_stop"], "")
+                                        chatbox.add_message(content, "assistant")
+                                        root.update_idletasks()  # Update the GUI
+                            except json.JSONDecodeError:
+                                print(f"Error decoding JSON: {line}")
+            except Exception as e:
+                chatbox.add_message(f"Error: {str(e)}\n", "assistant")
+
+            chatbox.add_message("\n", "assistant")  # Add a newline after the assistant's message
+
+            conversation.append({"assistant": assistant_msg})  # Add assistant's response to the conversation list
+
+            if current_chat:
+                with open(current_chat, "w") as f:
+                    json.dump(conversation, f, indent=4)
+            else:
+                filename = f"chat_{re.sub('[^A-Za-z0-9]+', '_', assistant_msg[:50])}_{random.randint(1000, 9999)}.json"
+                sidebar.chats.append((filename, conversation))
+                sidebar.display_chats()
+                with open(filename, "w") as f:
+                    json.dump(conversation, f, indent=4)
+                current_chat = filename
+
+            update_button()
+
+        stop_event.clear()
+        send_button.config(text="Stop", command=stop_assistant)
+        Thread(target=process_stream).start()
+
 
 def send_message(event=None):
     global conversation, current_chat
