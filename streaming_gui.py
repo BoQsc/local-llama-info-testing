@@ -8,6 +8,7 @@ from threading import Thread, Event
 import time
 import os
 import random
+import re
 
 conversation = []
 current_chat = None
@@ -149,12 +150,7 @@ class Sidebar(tk.Frame):
 
         for i, (file, chat) in enumerate(self.chats):
             if len(chat) > 0:
-                if "role" in chat[0]:
-                    if chat[0]["role"] == "user":
-                        first_message = chat[0]["content"]
-                    elif chat[0]["role"] == "assistant":
-                        first_message = "Assistant: " + chat[0]["content"]
-                elif "user" in chat[0]:
+                if "user" in chat[0]:
                     first_message = chat[0]["user"]
                 else:
                     first_message = "Unknown"
@@ -172,13 +168,9 @@ class Sidebar(tk.Frame):
             with open(file, "r") as f:
                 conversation = json.load(f)
                 for msg in conversation:
-                    if "role" in msg:
-                        if msg["role"] == "user":
-                            chatbox.add_message("User:\n" + msg["content"] + "\n\n", "user")
-                        elif msg["role"] == "assistant":
-                            chatbox.add_message("Assistant:\n" + msg["content"] + "\n\n", "assistant")
-                    elif "user" in msg and "assistant" in msg:
+                    if "user" in msg:
                         chatbox.add_message("User:\n" + msg["user"] + "\n\n", "user")
+                    elif "assistant" in msg:
                         chatbox.add_message("Assistant:\n" + msg["assistant"] + "\n\n", "assistant")
         except json.JSONDecodeError:
             print("Error: Unable to load chat history from JSON file.")
@@ -251,16 +243,17 @@ def send_message(event=None):
     entry.delete("1.0", "end")
     chatbox.add_message(f"User:\n{user_msg}\n\n", "user")
 
+    conversation.append({"user": user_msg})  # Add user's input to the conversation list
+
     url = "http://localhost:8080/v1/chat/completions"
     headers = {"Content-Type": "application/json"}
     
     # Prepare the message history for the API call
-    messages = [{"role": "system", "content": " "}]
+    messages = []
     for msg in conversation:
-        if "role" in msg:
-            messages.append({"role": msg["role"], "content": msg["content"]})
-        elif "user" in msg and "assistant" in msg:
+        if "user" in msg:
             messages.append({"role": "user", "content": msg["user"]})
+        elif "assistant" in msg:
             messages.append({"role": "assistant", "content": msg["assistant"]})
 
     messages.append({"role": "user", "content": user_msg})
@@ -303,18 +296,14 @@ def send_message(event=None):
             chatbox.add_message(f"Error: {str(e)}\n", "assistant")
 
         chatbox.add_message("\n", "assistant")  # Add a newline after the assistant's message
-        if conversation:
-            if "role" in conversation[0]:
-                conversation.append({"role": "assistant", "content": assistant_msg})
-            else:
-                conversation.append({"assistant": assistant_msg})
-        else:
-            conversation.append({"assistant": assistant_msg})
+
+        conversation.append({"assistant": assistant_msg})  # Add assistant's response to the conversation list
+
         if current_chat:
             with open(current_chat, "w") as f:
                 json.dump(conversation, f, indent=4)
         else:
-            filename = f"chat_{assistant_msg[:50]}_{random.randint(1000, 9999)}.json"
+            filename = f"chat_{re.sub('[^A-Za-z0-9]+', '_', assistant_msg[:50])}_{random.randint(1000, 9999)}.json"
             sidebar.chats.append((filename, conversation))
             sidebar.display_chats()
             with open(filename, "w") as f:
