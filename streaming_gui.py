@@ -239,6 +239,10 @@ stop_event = Event()
 
 
 def regenerate_message():
+    stop_event.set()  # Stop the assistant
+    send_button.config(text="Send", command=send_message)  # Update the send button
+    root.update_idletasks()  # Update the GUI
+    
     global conversation, current_chat
     if len(conversation) > 0:
         conversation.pop()
@@ -274,6 +278,7 @@ def regenerate_message():
                 with requests.post(url, headers=headers, json=data, stream=True) as response:
                     for line in response.iter_lines(decode_unicode=True):
                         if stop_event.is_set():
+                            response.close()
                             break
                         if line.strip():
                             if line.startswith("data: "):
@@ -357,7 +362,8 @@ def send_message(event=None):
             with requests.post(url, headers=headers, json=data, stream=True) as response:
                 for line in response.iter_lines(decode_unicode=True):
                     if stop_event.is_set():
-                        break
+                        response.close()  # Close the response object
+                        break  # Break the loop
                     if line.strip():
                         if line.startswith("data: "):
                             line = line[len("data: "):]
