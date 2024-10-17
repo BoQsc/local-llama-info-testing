@@ -5,7 +5,7 @@ url = "http://localhost:8080/completion"
 headers = {"Content-Type": "application/json"}
 data = {
     "stream": True,
-    "prompt": "Instruction: Hello \nResponse: ",
+    "prompt": "### Instruction: Hello \n ### Response: ",
 
 }
 
