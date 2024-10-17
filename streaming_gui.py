@@ -237,6 +237,17 @@ class SettingsSidebar(tk.Frame):
 # Global flag to control the assistant's response streaming
 stop_event = Event()
 
+def regenerate_message():
+    if len(conversation) > 0:
+        conversation.pop()
+        chatbox.clear()
+        for msg in conversation:
+            if "user" in msg:
+                chatbox.add_message(f"User:\n{msg['user']}\n\n", "user")
+            elif "assistant" in msg:
+                chatbox.add_message(f"Assistant:\n{msg['assistant']}\n\n", "assistant")
+        send_message()
+
 def send_message(event=None):
     global conversation, current_chat
     user_msg = entry.get("1.0", "end-1c").strip()
@@ -377,6 +388,11 @@ entry.bind("<Return>", lambda e: send_message() if not e.state & 0x1 else None) 
 
 send_button = tk.Button(root, text="Send", command=send_message, bg="#363F4A", fg="#C7C5B8")
 send_button.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
+
+regenerate_button = tk.Button(root, text="Regenerate", command=regenerate_message, bg="#363F4A", fg="#C7C5B8")
+regenerate_button.grid(row=3, column=2, padx=10, pady=10, sticky="ew")
+
+
 
 settings_sidebar = SettingsSidebar(root)
 
