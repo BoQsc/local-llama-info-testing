@@ -66,11 +66,15 @@ class CustomTitlebar(tk.Frame):
         self.exit_button = tk.Button(self, text="X", bg="#151A22", fg="#C7C5B8", command=self.exit)
         self.exit_button.grid(row=0, column=3)
 
+        self.title_label.bind("<Button-1>", self.drag_start)
+        self.title_label.bind("<B1-Motion>", self.drag_motion)
+        self.title_label.bind("<Double-Button-1>", self.toggle_full_screen)
+
         self.bind("<Button-1>", self.drag_start)
         self.bind("<B1-Motion>", self.drag_motion)
-        self.last_click_time = 0
         self.bind("<Double-Button-1>", self.toggle_full_screen)
 
+        self.last_click_time = 0
         self.is_maximized = False
 
     def drag_start(self, event):
@@ -111,8 +115,7 @@ class CustomTitlebar(tk.Frame):
             self.is_maximized = True
 
     def exit(self):
-        root.destroy()
-
+        root.destroy()     
 class Sidebar(tk.Frame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
