@@ -9,6 +9,9 @@ import time
 import os
 import random
 
+conversation = []
+current_chat = None
+
 class ScrollableText(tk.Frame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
@@ -121,26 +124,17 @@ class Sidebar(tk.Frame):
 
         self.load_chats()
 
-        new_chat_button = tk.Button(root, text="New Chat", command=self.new_chat, bg="#363F4A", fg="#C7C5B8")
-        new_chat_button.grid(row=5, column=0, padx=10, pady=10, sticky="ew")
-
-
-        self.add_button = tk.Button(self, text="Add Chat", command=self.add_chat)
-        self.add_button.grid(row=0, column=0)
-
         self.chat_frame = tk.Frame(self, bg="#151A22")
         self.chat_frame.grid(row=1, column=0)
 
         self.display_chats()
+        self.autosave_chats()
 
     def new_chat(self):
-        global conversation, current_chat
+        global conversation
         conversation = []
-        current_chat = None
         chatbox.clear()
         entry.delete("1.0", "end")
-        sidebar.chats = []
-        sidebar.display_chats()
 
     def load_chats(self):
         for file in os.listdir("."):
@@ -156,26 +150,25 @@ class Sidebar(tk.Frame):
         for i, (file, chat) in enumerate(self.chats):
             if len(chat) > 0:
                 if "role" in chat[0]:
-                    first_message = chat[0]["content"]
-                else:
+                    if chat[0]["role"] == "user":
+                        first_message = chat[0]["content"]
+                    elif chat[0]["role"] == "assistant":
+                        first_message = "Assistant: " + chat[0]["content"]
+                elif "user" in chat[0]:
                     first_message = chat[0]["user"]
+                else:
+                    first_message = "Unknown"
             else:
                 first_message = "Empty Chat"
             first_message = first_message[:50] + "..."
             button = tk.Button(self.chat_frame, text=first_message, command=lambda file=file: self.select_chat(file))
             button.grid(row=i, column=0)
-
-    def add_chat(self):
-        chat_name = "Chat " + str(len(self.chats) + 1)
-        self.chats.append((chat_name, []))
-        self.display_chats()
-
+        
     def select_chat(self, file):
-        global current_chat, conversation
-        # Clear the chatbox
+        global conversation, current_chat
+        current_chat = file
         chatbox.clear()
         try:
-            # Load the chat history from file
             with open(file, "r") as f:
                 conversation = json.load(f)
                 for msg in conversation:
@@ -191,7 +184,13 @@ class Sidebar(tk.Frame):
             print("Error: Unable to load chat history from JSON file.")
         except KeyError:
             print("Error: Unexpected JSON file format.")
-        current_chat = file
+
+    def autosave_chats(self):
+        global conversation, current_chat
+        if current_chat:
+            with open(current_chat, "w") as f:
+                json.dump(conversation, f, indent=4)
+        self.after(5000, self.autosave_chats)
 
 class SettingsSidebar(tk.Frame):
     def __init__(self, master, **kwargs):
@@ -256,7 +255,7 @@ def send_message(event=None):
     headers = {"Content-Type": "application/json"}
     
     # Prepare the message history for the API call
-    messages = [{"role": "system", "content": "You are an assistant."}]
+    messages = [{"role": "system", "content": " "}]
     for msg in conversation:
         if "role" in msg:
             messages.append({"role": msg["role"], "content": msg["content"]})
@@ -269,11 +268,12 @@ def send_message(event=None):
     data = {
         "stream": True,
         "messages": messages,
-        "max_new_tokens": 0,
+        "max_new_tokens": 9000,
         **settings_sidebar.get_settings()
     }
 
     def process_stream():
+        global conversation, current_chat
         assistant_msg = ""
         chatbox.add_message("Assistant:\n", "assistant")
         try:
@@ -294,31 +294,34 @@ def send_message(event=None):
                                     assistant_msg += content
                                     if settings_sidebar.get_settings()["auto_stop"] in assistant_msg:
                                         stop_event.set()
-                                    update_chatbox(content, "assistant")
+                                        assistant_msg = assistant_msg.replace(settings_sidebar.get_settings()["auto_stop"], "")
+                                    chatbox.add_message(content, "assistant")
+                                    root.update_idletasks()  # Update the GUI
                         except json.JSONDecodeError:
                             print(f"Error decoding JSON: {line}")
         except Exception as e:
-            update_chatbox(f"Error: {str(e)}\n", "assistant")
+            chatbox.add_message(f"Error: {str(e)}\n", "assistant")
 
         chatbox.add_message("\n", "assistant")  # Add a newline after the assistant's message
-        if "role" in conversation[0]:
-            conversation.append({"role": "assistant", "content": assistant_msg})
+        if conversation:
+            if "role" in conversation[0]:
+                conversation.append({"role": "assistant", "content": assistant_msg})
+            else:
+                conversation.append({"assistant": assistant_msg})
         else:
             conversation.append({"assistant": assistant_msg})
-        if not current_chat:
-            filename = f"chat_{user_msg[:50]}_{random.randint(1000, 9999)}.json"
+        if current_chat:
+            with open(current_chat, "w") as f:
+                json.dump(conversation, f, indent=4)
+        else:
+            filename = f"chat_{assistant_msg[:50]}_{random.randint(1000, 9999)}.json"
             sidebar.chats.append((filename, conversation))
             sidebar.display_chats()
             with open(filename, "w") as f:
                 json.dump(conversation, f, indent=4)
-        else:
-            with open(current_chat, "w") as f:
-                json.dump(conversation, f, indent=4)
+            current_chat = filename
 
         update_button()
-
-    def update_chatbox(content, sender):
-        chatbox.add_message(content, sender)
 
     stop_event.clear()
     send_button.config(text="Stop", command=stop_assistant)
@@ -332,7 +335,7 @@ def update_button():
     send_button.config(text="Send", command=send_message)
 
 def toggle_sidebar():
-    global current_chat, conversation
+    global conversation, current_chat
     if sidebar.grid_info():
         sidebar.grid_remove()
     else:
@@ -366,6 +369,9 @@ root.grid_columnconfigure(2, weight=1)
 sidebar = Sidebar(root)
 sidebar.grid(row=1, column=0, sticky="ns")
 
+new_chat_button = tk.Button(root, text="New Chat", command=sidebar.new_chat, bg="#363F4A", fg="#C7C5B8")
+new_chat_button.grid(row=5, column=0, padx=10, pady=10, sticky="ew")
+
 chatbox = ScrollableText(root)
 chatbox.grid(row=1, column=1, padx=10, pady=10, sticky="nsew")
 
@@ -387,8 +393,5 @@ sidebar_toggle_button.grid(row=4, column=0, padx=10, pady=10, sticky="ew")
 
 settings_toggle_button = tk.Button(root, text="Toggle Settings", command=toggle_settings_sidebar, bg="#363F4A", fg="#C7C5B8")
 settings_toggle_button.grid(row=4, column=2, padx=10, pady=10, sticky="ew")
-
-conversation = []
-current_chat = None
 
 root.mainloop()
