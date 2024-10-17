@@ -68,10 +68,13 @@ class CustomTitlebar(tk.Frame):
 
         self.bind("<Button-1>", self.drag_start)
         self.bind("<B1-Motion>", self.drag_motion)
-        self.last_click_time = 0
         self.bind("<Double-Button-1>", self.toggle_full_screen)
-
+        self.last_click_time = 0
         self.is_maximized = False
+
+        self.title_label.bind("<Button-1>", self.drag_start)
+        self.title_label.bind("<B1-Motion>", self.drag_motion)
+        self.title_label.bind("<Double-Button-1>", self.toggle_full_screen)
 
     def drag_start(self, event):
         self.x = event.x
@@ -234,87 +237,83 @@ class SettingsSidebar(tk.Frame):
 # Global flag to control the assistant's response streaming
 stop_event = Event()
 
-def send_message(event=None):
-    global conversation, current_chat
+def send_user_message():
+    """Send the user's message to the chat box"""
     user_msg = entry.get("1.0", "end-1c").strip()
     if not user_msg:
         return
 
     entry.delete("1.0", "end")
     chatbox.add_message(f"User:\n{user_msg}\n\n", "user")
+    conversation.append({"user": user_msg})
 
-    conversation.append({"user": user_msg})  # Add user's input to the conversation list
-
+def send_request(data):
+    """Send a request to the chat API"""
     url = "http://localhost:8080/v1/chat/completions"
     headers = {"Content-Type": "application/json"}
-    
-    # Prepare the message history for the API call
+    response = requests.post(url, headers=headers, json=data, stream=True)
+    return response
+
+def process_response(response):
+    """Process the response from the chat API"""
+    assistant_msg = ""
+    chatbox.add_message("Assistant:\n", "assistant")
+    try:
+        for line in response.iter_lines(decode_unicode=True):
+            if stop_event.is_set():
+                break
+            if line.strip():
+                if line.startswith("data: "):
+                    line = line[len("data: "):]
+                try:
+                    json_line = json.loads(line)
+                    choices = json_line.get("choices", [])
+                    for choice in choices:
+                        delta = choice.get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            assistant_msg += content
+                            if settings_sidebar.get_settings()["auto_stop"] in assistant_msg:
+                                stop_event.set()
+                                assistant_msg = assistant_msg.replace(settings_sidebar.get_settings()["auto_stop"], "")
+                            chatbox.add_message(content, "assistant")
+                            root.update_idletasks()  # Update the GUI
+                except json.JSONDecodeError:
+                    print(f"Error decoding JSON: {line}")
+    except Exception as e:
+        chatbox.add_message(f"Error: {str(e)}\n", "assistant")
+
+def send_message(event=None):
+    """Send a message to the chat API"""
+    send_user_message()
     messages = []
     for msg in conversation:
         if "user" in msg:
             messages.append({"role": "user", "content": msg["user"]})
         elif "assistant" in msg:
             messages.append({"role": "assistant", "content": msg["assistant"]})
-
-    messages.append({"role": "user", "content": user_msg})
-    
+    messages.append({"role": "user", "content": conversation[-1]["user"]})
     data = {
         "stream": True,
         "messages": messages,
         "max_new_tokens": 9000,
         **settings_sidebar.get_settings()
     }
-
-    def process_stream():
-        global conversation, current_chat
-        assistant_msg = ""
-        chatbox.add_message("Assistant:\n", "assistant")
-        try:
-            with requests.post(url, headers=headers, json=data, stream=True) as response:
-                for line in response.iter_lines(decode_unicode=True):
-                    if stop_event.is_set():
-                        break
-                    if line.strip():
-                        if line.startswith("data: "):
-                            line = line[len("data: "):]
-                        try:
-                            json_line = json.loads(line)
-                            choices = json_line.get("choices", [])
-                            for choice in choices:
-                                delta = choice.get("delta", {})
-                                content = delta.get("content", "")
-                                if content:
-                                    assistant_msg += content
-                                    if settings_sidebar.get_settings()["auto_stop"] in assistant_msg:
-                                        stop_event.set()
-                                        assistant_msg = assistant_msg.replace(settings_sidebar.get_settings()["auto_stop"], "")
-                                    chatbox.add_message(content, "assistant")
-                                    root.update_idletasks()  # Update the GUI
-                        except json.JSONDecodeError:
-                            print(f"Error decoding JSON: {line}")
-        except Exception as e:
-            chatbox.add_message(f"Error: {str(e)}\n", "assistant")
-
-        chatbox.add_message("\n", "assistant")  # Add a newline after the assistant's message
-
-        conversation.append({"assistant": assistant_msg})  # Add assistant's response to the conversation list
-
-        if current_chat:
-            with open(current_chat, "w") as f:
-                json.dump(conversation, f, indent=4)
-        else:
-            filename = f"chat_{re.sub('[^A-Za-z0-9]+', '_', assistant_msg[:50])}_{random.randint(1000, 9999)}.json"
-            sidebar.chats.append((filename, conversation))
-            sidebar.display_chats()
-            with open(filename, "w") as f:
-                json.dump(conversation, f, indent=4)
-            current_chat = filename
-
-        update_button()
-
-    stop_event.clear()
-    send_button.config(text="Stop", command=stop_assistant)
-    Thread(target=process_stream).start()
+    response = send_request(data)
+    process_response(response)
+    chatbox.add_message("\n", "assistant")  # Add a newline after the assistant's message
+    conversation.append({"assistant": assistant_msg})
+    if current_chat:
+        with open(current_chat, "w") as f:
+            json.dump(conversation, f, indent=4)
+    else:
+        filename = f"chat_{re.sub('[^A-Za-z0-9]+', '_', assistant_msg[:50])}_{random.randint(1000, 9999)}.json"
+        sidebar.chats.append((filename, conversation))
+        sidebar.display_chats()
+        with open(filename, "w") as f:
+            json.dump(conversation, f, indent=4)
+        current_chat = filename
+    update_button()
 
 def stop_assistant():
     stop_event.set()
