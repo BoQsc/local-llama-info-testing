@@ -1,0 +1,1 @@
+When I change window size everything stays on the left. I want RootFrame centered. Provide full updated code. Do not change anything else.
