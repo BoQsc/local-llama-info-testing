@@ -95,9 +95,11 @@ class RootFrame(tk.Frame):
 
     '''Functional Public Methods'''
     def get_pos(self, event):
+        # If maximized, restore to the previous position before starting the drag
+        if self.maximized:
+            self.maximizeToggle()  # Restore window to previous size
         self.xwin = event.x
         self.ywin = event.y
-
     def loop_control(self):
         self.parent.update_idletasks()
         self.parent.withdraw()
@@ -136,9 +138,9 @@ class RootFrame(tk.Frame):
         windll.user32.ShowWindow(hwnd, 0 if hide else 6)
 
     def move_window(self, event):
+        # Move the window based on the current cursor position after restoring from maximized state
         self.parent.geometry(f'+{event.x_root - self.xwin}+{event.y_root - self.ywin}')
         self.previousPosition = [self.parent.winfo_x(), self.parent.winfo_y()]
-
     def move_window_bindings(self, *args, status=True):
         if status == True:
             self.title_bar.bind("<B1-Motion>", self.move_window)
