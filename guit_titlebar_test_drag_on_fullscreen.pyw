@@ -1,9 +1,9 @@
-#https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos
-#https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-showwindow
+from ctypes import windll
+windll.shcore.SetProcessDpiAwareness(1)
+
 
 import tkinter as tk
 from ctypes import windll
-
 
 class RootFrame(tk.Frame):
     def __init__(self, parent, **kwargs):
@@ -36,7 +36,6 @@ class RootFrame(tk.Frame):
         self.__events__()
         self.loop_control()
 
-    '''GUI Private Methods'''
     def __events__(self):
         self.title_bar.bind('<Double-1>', self.maximizeToggle)
         self.title_name.bind('<Double-1>', self.maximizeToggle)
@@ -83,7 +82,7 @@ class RootFrame(tk.Frame):
                                  activebackground="red",
                                  activeforeground="white", 
                                  highlightthickness=0, 
-                                 command= quit)
+                                 command=self.quit)
 
         # pack the widgets
         self.title_bar.pack(fill='x', side=tk.TOP)
@@ -93,7 +92,6 @@ class RootFrame(tk.Frame):
         self.minimize_btn.pack(side=tk.RIGHT)
         self.move_window_bindings(status=True)
 
-    '''Functional Public Methods'''
     def get_pos(self, event):
         self.xwin = event.x
         self.ywin = event.y
@@ -104,43 +102,64 @@ class RootFrame(tk.Frame):
         self.set_appwindow()
 
     def maximizeToggle(self, event=None):
-        if self.maximized == False:
+        if not self.maximized:
             self.winfo_update()
-            #maximize current window
             self.maximize_btn.config(text="❐")
-            hwnd = windll.user32.GetParent(self.parent.winfo_id())
-            SWP_SHOWWINDOW = 0x40
-            windll.user32.SetWindowPos(hwnd, 0, 0, 0, 
-                int(self.parent.winfo_screenwidth()),
-                int(self.parent.winfo_screenheight()-48),
-                SWP_SHOWWINDOW)
+            self.maximize_window()
             self.maximized = True
-            self.move_window_bindings(status=False)
         else:
-            #restore down window
             self.maximize_btn.config(text="🗖")
-            hwnd = windll.user32.GetParent(self.parent.winfo_id())
-            SWP_SHOWWINDOW = 0x40
-            windll.user32.SetWindowPos(hwnd, 0, 
-                self.previousPosition[0],
-                self.previousPosition[1],
-                int(self.parent.windowSize[0]),
-                int(self.parent.windowSize[1]),
-                SWP_SHOWWINDOW)
+            self.restore_window()
             self.maximized = False
-            self.move_window_bindings(status=True)
 
-    def minimize(self, hide=False):
-       #reference: https://programtalk.com/python-examples/ctypes.windll.user32.ShowWindow/ 
+    def maximize_window(self):
         hwnd = windll.user32.GetParent(self.parent.winfo_id())
-        windll.user32.ShowWindow(hwnd, 0 if hide else 6)
+        SWP_SHOWWINDOW = 0x40
+        windll.user32.SetWindowPos(hwnd, 0, 0, 0, 
+            int(self.parent.winfo_screenwidth()),
+            int(self.parent.winfo_screenheight()-48),
+            SWP_SHOWWINDOW)
+
+    def restore_window(self):
+        hwnd = windll.user32.GetParent(self.parent.winfo_id())
+        SWP_SHOWWINDOW = 0x40
+        windll.user32.SetWindowPos(hwnd, 0, 
+            self.previousPosition[0],
+            self.previousPosition[1],
+            int(self.parent.windowSize[0]),
+            int(self.parent.windowSize[1]),
+            SWP_SHOWWINDOW)
+
+    def minimize(self):
+        hwnd = windll.user32.GetParent(self.parent.winfo_id())
+        windll.user32.ShowWindow(hwnd, 6)
 
     def move_window(self, event):
-        self.parent.geometry(f'+{event.x_root - self.xwin}+{event.y_root - self.ywin}')
+        if self.maximized:
+            # Calculate the relative mouse position as a fraction of the window width
+            relative_x = event.x_root / self.parent.winfo_width()
+            
+            # Restore the window
+            self.restore_window()
+            self.maximized = False
+            self.maximize_btn.config(text="🗖")
+            
+            # Calculate new position based on the relative mouse position
+            new_x = event.x_root - (self.parent.winfo_width() * relative_x)
+            new_y = event.y_root - self.ywin
+            self.parent.geometry(f'+{int(new_x)}+{int(new_y)}')
+            
+            # Update xwin for smooth transition to dragging
+            self.xwin = int(self.parent.winfo_width() * relative_x)
+        else:
+            new_x = event.x_root - self.xwin
+            new_y = event.y_root - self.ywin
+            self.parent.geometry(f'+{int(new_x)}+{int(new_y)}')
+        
         self.previousPosition = [self.parent.winfo_x(), self.parent.winfo_y()]
 
     def move_window_bindings(self, *args, status=True):
-        if status == True:
+        if status:
             self.title_bar.bind("<B1-Motion>", self.move_window)
             self.title_bar.bind("<Button-1>", self.get_pos)
             self.title_name.bind("<B1-Motion>", self.move_window)
@@ -169,10 +188,8 @@ class RootFrame(tk.Frame):
             self.hasstyle=True
 
     def winfo_update(self):
-        """Update geometry() information, return None"""
         self.parent.windowSize = [self.parent.winfo_width(),
                                   self.parent.winfo_height()]
-
 
 if __name__ == '__main__':
     root = tk.Tk()
