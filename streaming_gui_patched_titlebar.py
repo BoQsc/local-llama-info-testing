@@ -556,6 +556,10 @@ root.geometry("1200x900")
 root_frame = RootFrame(root, bg="#151A22", highlightthickness=0)
 root_frame.pack(fill=tk.BOTH, expand=True)
 
+root_frame.grid_rowconfigure(1, weight=1)
+root_frame.grid_columnconfigure(0, weight=1)
+root_frame.grid_columnconfigure(1, weight=5)
+
 sidebar = Sidebar(root_frame)
 sidebar.grid(row=1, column=0, sticky="ns")
 
