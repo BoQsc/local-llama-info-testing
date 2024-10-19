@@ -1,3 +1,7 @@
+from ctypes import windll
+windll.shcore.SetProcessDpiAwareness(1)
+
+
 # main.py
 import tkinter as tk
 from guit_titlebar_test import RootFrame
@@ -31,5 +35,7 @@ root.bind("<F11>", root_frame.maximizeToggle)
 
 rsz = tk.Button(root_frame, text="Resize", command=root_frame.maximizeToggle)
 rsz.pack()
+
+
 
 root.mainloop()
