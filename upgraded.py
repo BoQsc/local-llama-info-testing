@@ -1,6 +1,6 @@
 from ctypes import windll
 windll.shcore.SetProcessDpiAwareness(1)
-
+    
 
 # main.py
 import tkinter as tk
@@ -8,7 +8,10 @@ from guit_titlebar_test import RootFrame
 from override_betterFullScreen import maximizeToggle
 
 # Override the method
-RootFrame.maximizeToggle = maximizeToggle
+#RootFrame.maximizeToggle = maximizeToggle
+RootFrame.FullmaximizeToggle = maximizeToggle
+
+
 
 root = tk.Tk()
 root.geometry("300x300")
@@ -31,7 +34,7 @@ def toggle_fullscreen(event=None):
         root.attributes("-fullscreen", True)
 
 # Bind F11 key to the toggle_fullscreen function
-root.bind("<F11>", root_frame.maximizeToggle)
+root.bind("<F11>", root_frame.FullmaximizeToggle)
 
 rsz = tk.Button(root_frame, text="Resize", command=root_frame.maximizeToggle)
 rsz.pack()
