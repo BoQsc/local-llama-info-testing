@@ -131,6 +131,11 @@ class RootFrame(tk.Frame):
             self.move_window_bindings(status=True)
 
     def FullmaximizeToggle():
+        root.wm_attributes("-topmost", True)
+        width, height = root.maxsize()
+        root.geometry(f'{width}x{height + 18}+0-0')
+
+
     def minimize(self, hide=False):
        #reference: https://programtalk.com/python-examples/ctypes.windll.user32.ShowWindow/ 
         hwnd = windll.user32.GetParent(self.parent.winfo_id())
@@ -175,6 +180,7 @@ class RootFrame(tk.Frame):
                                   self.parent.winfo_height()]
 
 
+
 if __name__ == '__main__':
     root = tk.Tk()
     root.geometry("300x300")
@@ -188,10 +194,8 @@ if __name__ == '__main__':
 
     def resize():
         root.wm_attributes("-topmost", True)
-        m = root.maxsize()  
-        width, height = m[0], m[1]  
-        root.geometry('{}x{}+0-0'.format(width, height + 18))
-        #        root.geometry("500x650")
+        width, height = root.maxsize()
+        root.geometry(f'{width}x{height + 18}+0-0')
 
         
     rsz = tk.Button(root_frame, text="Resize", command=resize)
