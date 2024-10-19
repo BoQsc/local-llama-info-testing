@@ -27,9 +27,9 @@ def toggle_fullscreen(event=None):
         root.attributes("-fullscreen", True)
 
 # Bind F11 key to the toggle_fullscreen function
-root.bind("<F11>", resize)
+root.bind("<F11>", root_frame.maximizeToggle)
 
-rsz = tk.Button(root_frame, text="Resize", command=resize)
+rsz = tk.Button(root_frame, text="Resize", command=root_frame.maximizeToggle)
 rsz.pack()
 
 root.mainloop()

@@ -9,8 +9,11 @@ def maximizeToggle(self, event=None):
         self.maximized = True
         self.move_window_bindings(status=False)
     else:
+        from ctypes import windll
+
         # Restore down window
         self.maximize_btn.config(text="🗖")
+        self.parent.wm_attributes("-topmost", False)
         hwnd = windll.user32.GetParent(self.parent.winfo_id())
         SWP_SHOWWINDOW = 0x40
         windll.user32.SetWindowPos(hwnd, 0, 
