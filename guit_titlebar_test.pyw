@@ -130,6 +130,7 @@ class RootFrame(tk.Frame):
             self.maximized = False
             self.move_window_bindings(status=True)
 
+    def FullmaximizeToggle():
     def minimize(self, hide=False):
        #reference: https://programtalk.com/python-examples/ctypes.windll.user32.ShowWindow/ 
         hwnd = windll.user32.GetParent(self.parent.winfo_id())
