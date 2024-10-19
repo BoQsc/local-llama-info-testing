@@ -130,10 +130,6 @@ class RootFrame(tk.Frame):
             self.maximized = False
             self.move_window_bindings(status=True)
 
-    def FullmaximizeToggle():
-        root.wm_attributes("-topmost", True)
-        width, height = root.maxsize()
-        root.geometry(f'{width}x{height + 18}+0-0')
 
 
     def minimize(self, hide=False):
