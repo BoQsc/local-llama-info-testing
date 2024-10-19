@@ -178,6 +178,7 @@ if __name__ == '__main__':
     root = tk.Tk()
     root.geometry("300x300")
 
+
     root_frame = RootFrame(root, bg="white", highlightthickness=1, highlightbackground="#2c2c2c")
     root_frame.pack(fill=tk.BOTH, expand=True)
     
@@ -185,7 +186,12 @@ if __name__ == '__main__':
     txt.pack(anchor="center")
 
     def resize():
-        root.geometry("500x650")
+        root.wm_attributes("-topmost", True)
+        m = root.maxsize()  
+        width, height = m[0], m[1]  
+        root.geometry('{}x{}+0-0'.format(width, height + 18))
+        #        root.geometry("500x650")
+
         
     rsz = tk.Button(root_frame, text="Resize", command=resize)
     rsz.pack()
