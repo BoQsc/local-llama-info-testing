@@ -126,6 +126,12 @@ def moveMouseButton(e):
         window.geometry(f"{w}x{y1 - y0}")
     elif resize_dir == 'corner':
         window.geometry(f"{x1 - x0}x{y1 - y0}")
+    elif resize_dir == 'left':
+        new_width = w - (x1 - x0)
+        window.geometry(f"{new_width}x{h}+{x1}+{y0}")
+    elif resize_dir == 'top' and window.state() != 'zoomed':  # Disable top resize when maximized
+        new_height = h - (y1 - y0)
+        window.geometry(f"{w}x{new_height}+{x0}+{y1}")
 
 def detect_resize_dir(e):
     global resize_dir
@@ -140,6 +146,12 @@ def detect_resize_dir(e):
         window.config(cursor="size_we")
     elif y > h - border_size:
         resize_dir = 'bottom'
+        window.config(cursor="size_ns")
+    elif x < border_size:
+        resize_dir = 'left'
+        window.config(cursor="size_we")
+    elif y < border_size and window.state() != 'zoomed':  # Disable top resize when maximized
+        resize_dir = 'top'
         window.config(cursor="size_ns")
     else:
         resize_dir = None
