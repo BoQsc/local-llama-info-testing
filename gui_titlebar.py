@@ -138,15 +138,10 @@ def detect_resize_dir(e):
     x, y = e.x, e.y
     w, h = window.winfo_width(), window.winfo_height()
 
-    # Check if the mouse is within the bounds of the title bar and buttons
-    title_bar_height = titlebar.winfo_height()
-    if y < title_bar_height:
-        resize_dir = None
-        window.config(cursor="arrow")
-        return
-
-    # Calculate the effective area for resizing, excluding title bar and buttons
-    if (x > w - border_size and y > h - border_size):  # Bottom-right corner
+    if y < border_size and window.state() != 'zoomed':  # Top edge
+        resize_dir = 'top'
+        window.config(cursor="size_ns")
+    elif (x > w - border_size and y > h - border_size):  # Bottom-right corner
         resize_dir = 'corner'
         window.config(cursor="size_nw_se")
     elif x > w - border_size:  # Right side
@@ -158,9 +153,6 @@ def detect_resize_dir(e):
     elif x < border_size:  # Left side
         resize_dir = 'left'
         window.config(cursor="size_we")
-    elif y < border_size and window.state() != 'zoomed':  # Disable top resize when maximized
-        resize_dir = 'top'
-        window.config(cursor="size_ns")
     else:
         resize_dir = None
         window.config(cursor="arrow")
@@ -183,5 +175,8 @@ titlebar.exit_button.bind("<Motion>", ignore_events)
 # Additional bindings for resizing functionality
 window.bind("<Enter>", detect_resize_dir)
 window.bind("<Leave>", lambda e: window.config(cursor="arrow"))
+
+# Make the top edge of the window trigger resize
+window.bind("<Button-1>", lambda e: moveMouseButton(e) if e.y < border_size and window.state() != 'zoomed' else None)
 
 window.mainloop()
