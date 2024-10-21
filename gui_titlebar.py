@@ -1,6 +1,26 @@
 import tkinter as tk
 from ctypes import windll
 
+# Restore window on drag after maximization
+def drag_to_restore(event):
+    global xwin, ywin, drag_start_x, drag_start_y
+    drag_start_x = event.x_root
+    drag_start_y = event.y_root
+
+    if window.state() == 'zoomed':
+        width_ratio = xwin / window.winfo_width()  # Calculate ratio of cursor within window
+        window.state('normal')  # Restore window to normal
+        window.update_idletasks()  # Ensure geometry updates
+
+        new_x = drag_start_x - int(window.winfo_width() * width_ratio)  # Recalculate X based on ratio
+        new_y = drag_start_y - ywin
+
+        new_x = max(0, min(new_x, window.winfo_screenwidth() - window.winfo_width()))  # Stay within bounds
+        new_y = max(0, min(new_y, window.winfo_screenheight() - window.winfo_height()))
+        
+        window.geometry(f'+{new_x}+{new_y}')  # Set new position
+        xwin = int(window.winfo_width() * width_ratio)  # Update position values for future dragging
+
 def set_appwindow(root):
     GWL_EXSTYLE = -20
     WS_EX_APPWINDOW = 0x00040000
@@ -80,7 +100,10 @@ titlebar.name.bind('<B1-Motion>', move_window)
 titlebar.bind('<Double-1>', toggle_maximize)
 titlebar.name.bind('<Double-1>', toggle_maximize)
 
+# Bind drag to restore functionality when maximized
+titlebar.bind('<Button-1>', drag_to_restore, add="+")
+titlebar.name.bind('<Button-1>', drag_to_restore, add="+")
+
 # Set the window to appear in the taskbar
 window.after(10, lambda: set_appwindow(window))
 
-window.mainloop()
