@@ -24,7 +24,6 @@ with requests.post(url, headers=headers, stream=True, json=data) as response:
         if line.strip():  
             if line.startswith("data: "):
                 line = line[len("data: "):] 
-
             try:
                 json_line = json.loads(line)
                 content = json_line["content"]
