@@ -1,6 +1,18 @@
 import tkinter as tk
 from ctypes import windll
 
+def set_appwindow(root):
+    GWL_EXSTYLE = -20
+    WS_EX_APPWINDOW = 0x00040000
+    WS_EX_TOOLWINDOW = 0x00000080
+    hwnd = windll.user32.GetParent(root.winfo_id())
+    style = windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+    style = style & ~WS_EX_TOOLWINDOW
+    style = style | WS_EX_APPWINDOW
+    windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
+    root.withdraw()
+    root.after(10, root.deiconify)
+
 #_____________Create_Window________________
 window = tk.Tk()
 window.title("Example")
@@ -37,6 +49,21 @@ titlebar.exit_button.pack(side=tk.RIGHT)
 titlebar.maximize_button.pack(side=tk.RIGHT)  
 titlebar.minimize_button.pack(side=tk.RIGHT)  
 
+# Add window dragging functionality
+def get_pos(event):
+    global xwin, ywin
+    xwin = event.x
+    ywin = event.y
 
+def move_window(event):
+    window.geometry(f'+{event.x_root - xwin}+{event.y_root - ywin}')
+
+titlebar.bind('<Button-1>', get_pos)
+titlebar.bind('<B1-Motion>', move_window)
+titlebar.name.bind('<Button-1>', get_pos)
+titlebar.name.bind('<B1-Motion>', move_window)
+
+# Set the window to appear in the taskbar
+window.after(10, lambda: set_appwindow(window))
 
 window.mainloop()
