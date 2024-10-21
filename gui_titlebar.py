@@ -107,3 +107,46 @@ titlebar.name.bind('<Button-1>', drag_to_restore, add="+")
 # Set the window to appear in the taskbar
 window.after(10, lambda: set_appwindow(window))
 
+#______________Window_Resize_By_Drag___________________
+border_size = 10  # Width of the resize border area
+resize_dir = None
+
+def moveMouseButton(e):
+    global resize_dir
+    x1 = window.winfo_pointerx()
+    y1 = window.winfo_pointery()
+    x0 = window.winfo_rootx()
+    y0 = window.winfo_rooty()
+    w = window.winfo_width()
+    h = window.winfo_height()
+
+    if resize_dir == 'right':
+        window.geometry(f"{x1 - x0}x{h}")
+    elif resize_dir == 'bottom':
+        window.geometry(f"{w}x{y1 - y0}")
+    elif resize_dir == 'corner':
+        window.geometry(f"{x1 - x0}x{y1 - y0}")
+
+def detect_resize_dir(e):
+    global resize_dir
+    x, y = e.x, e.y
+    w, h = window.winfo_width(), window.winfo_height()
+
+    if x > w - border_size and y > h - border_size:
+        resize_dir = 'corner'
+        window.config(cursor="size_nw_se")
+    elif x > w - border_size:
+        resize_dir = 'right'
+        window.config(cursor="size_we")
+    elif y > h - border_size:
+        resize_dir = 'bottom'
+        window.config(cursor="size_ns")
+    else:
+        resize_dir = None
+        window.config(cursor="arrow")
+
+# Bind mouse events for window resize
+window.bind("<B1-Motion>", moveMouseButton)
+window.bind("<Motion>", detect_resize_dir)
+
+window.mainloop()
