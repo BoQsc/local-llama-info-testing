@@ -29,7 +29,7 @@ def set_appwindow(root):
     style = windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
     style = style & ~WS_EX_TOOLWINDOW
     style = style | WS_EX_APPWINDOW
-    windll.user32.SetWindowLongW(hwnd, GWL_EX_EXSTYLE, style)
+    windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
     root.withdraw()
     root.after(10, root.deiconify)
 
@@ -82,7 +82,6 @@ titlebar.maximize_button.pack(side=tk.RIGHT)
 titlebar.minimize_button.pack(side=tk.RIGHT)  
 
 #______________Title_Bar_Dragging___________________
-# Add window dragging functionality
 def get_pos(event):
     global xwin, ywin
     xwin = event.x
@@ -113,8 +112,8 @@ resize_dir = None
 
 def moveMouseButton(e):
     global resize_dir
-    x1 = window.winfo_pointerx()
-    y1 = window.winfo_pointery()
+    x1 = e.x_root
+    y1 = e.y_root
     x0 = window.winfo_rootx()
     y0 = window.winfo_rooty()
     w = window.winfo_width()
@@ -133,6 +132,7 @@ def moveMouseButton(e):
         new_height = h - (y1 - y0)
         window.geometry(f"{w}x{new_height}+{x0}+{y1}")
 
+# Handling resize operations
 def detect_resize_dir(e):
     global resize_dir
     x, y = e.x, e.y
@@ -158,8 +158,11 @@ def detect_resize_dir(e):
         window.config(cursor="arrow")
 
 # Bind mouse events for window resize
-window.bind("<B1-Motion>", moveMouseButton)
 window.bind("<Motion>", detect_resize_dir)
+window.bind("<Leave>", lambda e: window.config(cursor="arrow"))
+
+# Make the top edge of the window trigger resize
+window.bind("<Button-1>", lambda e: moveMouseButton(e) if e.y < border_size and window.state() != 'zoomed' else None)
 
 # Ignore Motion events on title bar and buttons
 def ignore_events(event):
@@ -173,10 +176,6 @@ titlebar.maximize_button.bind("<Motion>", ignore_events)
 titlebar.exit_button.bind("<Motion>", ignore_events)
 
 # Additional bindings for resizing functionality
-window.bind("<Enter>", detect_resize_dir)
-window.bind("<Leave>", lambda e: window.config(cursor="arrow"))
-
-# Make the top edge of the window trigger resize
-window.bind("<Button-1>", lambda e: moveMouseButton(e) if e.y < border_size and window.state() != 'zoomed' else None)
+window.bind("<B1-Motion>", moveMouseButton)  # Bind to allow resizing when dragging
 
 window.mainloop()
