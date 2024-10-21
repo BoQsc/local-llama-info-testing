@@ -17,6 +17,14 @@ def minimize_window():
     hwnd = windll.user32.GetParent(window.winfo_id())
     windll.user32.ShowWindow(hwnd, 6)  # SW_MINIMIZE = 6
 
+def toggle_maximize(event):
+    if window.state() == 'zoomed':
+        window.state('normal')
+        titlebar.maximize_button.config(text='🗖')
+    else:
+        window.state('zoomed')
+        titlebar.maximize_button.config(text='❐')
+
 #_____________Create_Window________________
 window = tk.Tk()
 window.title("Example")
@@ -67,6 +75,10 @@ titlebar.bind('<Button-1>', get_pos)
 titlebar.bind('<B1-Motion>', move_window)
 titlebar.name.bind('<Button-1>', get_pos)
 titlebar.name.bind('<B1-Motion>', move_window)
+
+# Bind double-click to maximize/restore
+titlebar.bind('<Double-1>', toggle_maximize)
+titlebar.name.bind('<Double-1>', toggle_maximize)
 
 # Set the window to appear in the taskbar
 window.after(10, lambda: set_appwindow(window))
