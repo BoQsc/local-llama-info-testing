@@ -4,14 +4,14 @@ import json
 url = "http://localhost:8080/completion"
 headers = {"Content-Type": "application/json"}
 data = {
-    "penalty_prompt_tokens":["### Instruction"],
+    #"penalty_prompt_tokens":["### Instruction"],
     "stop": ["</s>"],
     # diagnostic: "stopped_word"
     # Diagnostic: "stopping_word"
-    "use_penalty_prompt_tokens":True,
-    "penalize_nl":True,
-    "presence_penalty":1.0,
-    "frequency_penalty":1.0,
+    #"use_penalty_prompt_tokens":True,
+    #"penalize_nl":True,
+    #"presence_penalty":1.0,
+    #"frequency_penalty":1.0,
     "stream": True,
     "prompt": "### Instruction: Hello \n ### Response: ",
 
@@ -31,4 +31,4 @@ with requests.post(url, headers=headers, stream=True, json=data) as response:
                 print(f"Error decoding JSON: {line}") 
     if json_line["generation_settings"]:
         print(json_line["timings"]["predicted_per_second"])
-input()
+#input()
