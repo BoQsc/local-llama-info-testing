@@ -27,8 +27,7 @@ with requests.post(url, headers=headers, stream=True, json=data) as response:
 
             try:
                 json_line = json.loads(line)
-                content = json_line.get("content", [])
-                
+                content = json_line["content"]
                 if content: 
                     print(content, end='', flush=True)
             except json.JSONDecodeError:
