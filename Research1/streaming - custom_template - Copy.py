@@ -32,6 +32,6 @@ with requests.post(url, headers=headers, stream=True, json=data) as response:
                     print(content, end='', flush=True)
             except json.JSONDecodeError:
                 print(f"Error decoding JSON: {line}") 
-
-    print(json_line["timings"]["predicted_per_second"])
+    if json_line["generation_settings"]:
+        print(json_line["timings"]["predicted_per_second"])
 input()
