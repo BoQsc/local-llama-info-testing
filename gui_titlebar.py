@@ -42,13 +42,14 @@ titlebar.minimize_button.config(text='🗕', font="bold")
 titlebar.maximize_button.config(text='🗖', font="bold")
 titlebar.exit_button.config(text='🗙', font="bold")
 
-#_______________Layout_____________________
+#_________________Layout_____________________
 titlebar.pack(fill=tk.X)  
 titlebar.name.pack(side='left', padx=5)  
 titlebar.exit_button.pack(side=tk.RIGHT)  
 titlebar.maximize_button.pack(side=tk.RIGHT)  
 titlebar.minimize_button.pack(side=tk.RIGHT)  
 
+#______________Title_Bar_Implementation______________
 # Add window dragging functionality
 def get_pos(event):
     global xwin, ywin
