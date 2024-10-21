@@ -18,8 +18,6 @@ data = {
 }
 
 with requests.post(url, headers=headers, stream=True, json=data) as response:
-    #print(response.text)
-    #input()
     for line in response.iter_lines(decode_unicode=True):
         if line.strip():  
             if line.startswith("data: "):
