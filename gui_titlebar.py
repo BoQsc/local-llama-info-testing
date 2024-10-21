@@ -29,7 +29,7 @@ def set_appwindow(root):
     style = windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
     style = style & ~WS_EX_TOOLWINDOW
     style = style | WS_EX_APPWINDOW
-    windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
+    windll.user32.SetWindowLongW(hwnd, GWL_EX_EXSTYLE, style)
     root.withdraw()
     root.after(10, root.deiconify)
 
@@ -138,16 +138,24 @@ def detect_resize_dir(e):
     x, y = e.x, e.y
     w, h = window.winfo_width(), window.winfo_height()
 
-    if x > w - border_size and y > h - border_size:
+    # Check if the mouse is within the bounds of the title bar and buttons
+    title_bar_height = titlebar.winfo_height()
+    if y < title_bar_height:
+        resize_dir = None
+        window.config(cursor="arrow")
+        return
+
+    # Calculate the effective area for resizing, excluding title bar and buttons
+    if (x > w - border_size and y > h - border_size):  # Bottom-right corner
         resize_dir = 'corner'
         window.config(cursor="size_nw_se")
-    elif x > w - border_size:
+    elif x > w - border_size:  # Right side
         resize_dir = 'right'
         window.config(cursor="size_we")
-    elif y > h - border_size:
+    elif y > h - border_size:  # Bottom side
         resize_dir = 'bottom'
         window.config(cursor="size_ns")
-    elif x < border_size:
+    elif x < border_size:  # Left side
         resize_dir = 'left'
         window.config(cursor="size_we")
     elif y < border_size and window.state() != 'zoomed':  # Disable top resize when maximized
@@ -160,5 +168,20 @@ def detect_resize_dir(e):
 # Bind mouse events for window resize
 window.bind("<B1-Motion>", moveMouseButton)
 window.bind("<Motion>", detect_resize_dir)
+
+# Ignore Motion events on title bar and buttons
+def ignore_events(event):
+    pass
+
+# Bind ignore events to the title bar and buttons
+titlebar.bind("<Motion>", ignore_events)
+titlebar.name.bind("<Motion>", ignore_events)
+titlebar.minimize_button.bind("<Motion>", ignore_events)
+titlebar.maximize_button.bind("<Motion>", ignore_events)
+titlebar.exit_button.bind("<Motion>", ignore_events)
+
+# Additional bindings for resizing functionality
+window.bind("<Enter>", detect_resize_dir)
+window.bind("<Leave>", lambda e: window.config(cursor="arrow"))
 
 window.mainloop()
