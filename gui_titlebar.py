@@ -111,7 +111,7 @@ border_size = 10  # Width of the resize border area
 resize_dir = None
 
 def moveMouseButton(e):
-    global resize_dir
+    global resize_dir, window
     x1 = e.x_root
     y1 = e.y_root
     x0 = window.winfo_rootx()
@@ -127,32 +127,34 @@ def moveMouseButton(e):
         window.geometry(f"{x1 - x0}x{y1 - y0}")
     elif resize_dir == 'left':
         new_width = w - (x1 - x0)
-        window.geometry(f"{new_width}x{h}+{x1}+{y0}")
+        new_x = x1
+        window.geometry(f"{new_width}x{h}+{new_x}+{y0}")
     elif resize_dir == 'top' and window.state() != 'zoomed':  # Disable top resize when maximized
         new_height = h - (y1 - y0)
-        window.geometry(f"{w}x{new_height}+{x0}+{y1}")
+        new_y = y1
+        window.geometry(f"{w}x{new_height}+{x0}+{new_y}")
 
 # Handling resize operations
 def detect_resize_dir(e):
-    global resize_dir
+    global resize_dir, window
     x, y = e.x, e.y
     w, h = window.winfo_width(), window.winfo_height()
 
     if y < border_size and window.state() != 'zoomed':  # Top edge
         resize_dir = 'top'
         window.config(cursor="size_ns")
-    elif (x > w - border_size and y > h - border_size):  # Bottom-right corner
-        resize_dir = 'corner'
-        window.config(cursor="size_nw_se")
-    elif x > w - border_size:  # Right side
-        resize_dir = 'right'
-        window.config(cursor="size_we")
     elif y > h - border_size:  # Bottom side
         resize_dir = 'bottom'
         window.config(cursor="size_ns")
     elif x < border_size:  # Left side
         resize_dir = 'left'
         window.config(cursor="size_we")
+    elif x > w - border_size:  # Right side
+        resize_dir = 'right'
+        window.config(cursor="size_we")
+    elif (x > w - border_size and y > h - border_size):  # Bottom-right corner
+        resize_dir = 'corner'
+        window.config(cursor="size_nw_se")
     else:
         resize_dir = None
         window.config(cursor="arrow")
@@ -161,8 +163,8 @@ def detect_resize_dir(e):
 window.bind("<Motion>", detect_resize_dir)
 window.bind("<Leave>", lambda e: window.config(cursor="arrow"))
 
-# Make the top edge of the window trigger resize
-window.bind("<Button-1>", lambda e: moveMouseButton(e) if e.y < border_size and window.state() != 'zoomed' else None)
+# Make the border area around the window trigger resize
+window.bind("<Button-1>", lambda e: moveMouseButton(e) if (e.y < border_size or e.x > window.winfo_width() - border_size or e.y > window.winfo_height() - border_size or e.x < border_size) else None)
 
 # Ignore Motion events on title bar and buttons
 def ignore_events(event):
