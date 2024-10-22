@@ -11,8 +11,11 @@ def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a w
     messages_history = [
     "\n\n### Instruction:\nboqsc is wow player.",
     "\n\n### Response:\nunderstood.",
+    "\n\n### Response:\nMy name is hamham.",
     ]
 
+
+    system_prompt = "The '### Instruction:' is Me. The '### Response:' is You." + system_prompt
 
     alpaca_prompt_template = [
         system_prompt +
@@ -64,7 +67,9 @@ def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a w
     return api_request()
 
 #alpaca_agent(user_message="write 't'")
-alpaca_agent("are you aware of boqsc?", system_prompt="Confirm only known facts without speculation. Provide only what is asked. Expand only if prompted. Be assertive only, completely factual, empirical, circumspect and precise with information given.")
-alpaca_agent("What games did boqsc play?", system_prompt="Confirm only known facts without speculation. Provide only what is asked. Expand only if prompted. Be assertive only, completely factual, empirical, circumspect and precise with information given.")
+#alpaca_agent("are you aware of boqsc?", system_prompt="Confirm only known facts without speculation. Provide only what is asked. Expand only if prompted. Be assertive only, completely factual, empirical, circumspect and precise with information given.")
+#alpaca_agent("What games did boqsc play?", system_prompt="Confirm only known facts without speculation. Provide only what is asked. Expand only if prompted. Be assertive only, completely factual, empirical, circumspect and precise with information given.")
+#alpaca_agent("what is your name?", system_prompt="Confirm only known facts without speculation. Provide only what is asked. Expand only if prompted. Be assertive only, completely factual, empirical, circumspect and precise with information given.")
+alpaca_agent("what is my name and what is your name? Write how do you know or became aware of factual association of names. ", system_prompt="Do not assume. Confirm only known facts without speculation. Provide only what is asked. Expand only if prompted. Be assertive only, completely factual, empirical, circumspect and precise with information given.")
 
 input()
