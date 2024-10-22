@@ -13,7 +13,7 @@ data = {
     #"presence_penalty":1.0,
     #"frequency_penalty":1.0,
     "stream": True,
-    "prompt": "### Instruction: Hello \n ### Response: ",
+    "prompt": "### Instruction: Hello \n\n ### Response: ",
 
 }
 
