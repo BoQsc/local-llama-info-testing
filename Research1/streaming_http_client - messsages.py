@@ -3,7 +3,7 @@ import json
 
 messages_history = [
  "\n\n### Instruction:\nSomeMessage",
- "\n\n### Response:\n"SomeMessage2,
+ "\n\n### Response:\nSomeMessage2",
 ]
 
 def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a waffle capybara that's chill"):
