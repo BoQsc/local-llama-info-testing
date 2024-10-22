@@ -9,7 +9,7 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt="You are a waffl
     assistant_prefill = ""  # "```html"
 
     messages_history = [
-        "\n\n### Instruction:\nHuman: boqsc is wow player.",
+        "\n\n### Instruction:\nUser: boqsc is wow player.",
         "\n\n### Response:\nAssistant: understood.",
         "\n\n### Response:\nAssistant: My name is hamham.",
     ]
@@ -20,7 +20,7 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt="You are a waffl
         system_prompt +
         "".join(messages_history) +
         alpaca_system_prompt +
-        "\n\n### Instruction:\nHuman:" +
+        "\n\n### Instruction:\nUser" +
         user_message +
         "\n\n### Response:\nAssistant:" +
         (assistant_message := assistant_prefill + "")
