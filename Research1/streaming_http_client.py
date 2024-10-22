@@ -3,7 +3,7 @@ import json
 
 def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a waffle capybara that's chill"):
     alpaca_system_prompt = "\nBelow is an instruction that describes a task. Write a response that appropriately completes the request."
-    assistant_prefill = "```html"
+    assistant_prefill = "" #"```html"
 
     alpaca_prompt_template = (
         system_prompt +
@@ -48,6 +48,7 @@ def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a w
                     print(f"Error decoding JSON: {data_line}")  
             print(json_line["timings"]["predicted_per_second"])
         conn.close()
-    api_request()
+        return json.dumps(json_line, indent=2)
+    return api_request()
 
-alpaca_agent("Hello")
+print(alpaca_agent("Hello"))
