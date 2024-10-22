@@ -64,6 +64,7 @@ def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a w
     return api_request()
 
 #alpaca_agent(user_message="write 't'")
-alpaca_agent("are you aware of boqsc?")
+alpaca_agent("are you aware of boqsc?", system_prompt="Confirm only known facts without speculation. Provide only what is asked. Expand only if prompted. Be assertive only, completely factual, empirical, circumspect and precise with information given.")
+alpaca_agent("What games did boqsc play?", system_prompt="Confirm only known facts without speculation. Provide only what is asked. Expand only if prompted. Be assertive only, completely factual, empirical, circumspect and precise with information given.")
 
 input()
