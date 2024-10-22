@@ -3,6 +3,7 @@ import json
 
 url = "http://localhost:8080/completion"
 headers = {"Content-Type": "application/json"}
+system_prompt = ""
 data = {
     #"penalty_prompt_tokens":["### Instruction"],
     "stop": ["</s>"],
@@ -13,7 +14,7 @@ data = {
     #"presence_penalty":1.0,
     #"frequency_penalty":1.0,
     "stream": True,
-    "prompt": "\n\n### Instruction:\nHello\n\n### Response:\n",
+    "prompt": system_prompt + "\n\n### Instruction:\nHello\n\n### Response:\n",
 
 }
 
