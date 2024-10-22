@@ -9,21 +9,22 @@ def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a w
     assistant_prefill = "" #"```html"
 
     messages_history = [
-    "\n\n### Instruction:\nboqsc is wow player.",
-    "\n\n### Response:\nunderstood.",
-    "\n\n### Response:\nMy name is hamham.",
+        "### Instruction (Human):\nboqsc is a WoW player.",
+        "### Response (Assistant):\nUnderstood.",
+        "### Response (Assistant):\nMy name is Hamham."
     ]
 
 
-    system_prompt = "The '### Instruction:' is Human. The '### Response:' is Assistant." + system_prompt
+
+    system_prompt = "The '### Instruction (Human):' is from the user, and the '### Response (Assistant):' is from the assistant. Ensure clarity when addressing either party by their role." + system_prompt
 
     alpaca_prompt_template = [
         system_prompt +
         "".join(messages_history) +
         alpaca_system_prompt +
-        "\n\n### Instruction:\n" +
+        "\n\n### Instruction (Human):\n" +
         user_message +
-        "\n\n### Response:\n" +
+        "\n\n### Response (Assistant):\n" +
         (assistant_message := assistant_prefill + "")
     ]
     print(alpaca_prompt_template)
