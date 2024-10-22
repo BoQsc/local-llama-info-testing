@@ -16,14 +16,14 @@ def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a w
 
     alpaca_prompt_template = [
         system_prompt +
+        "".join(messages_history) +
         alpaca_system_prompt +
-        str(messages_history) +
         "\n\n### Instruction:\n" +
         user_message +
         "\n\n### Response:\n" +
         (assistant_message := assistant_prefill + "")
     ]
-
+    print(alpaca_prompt_template)
     data = {
 
         "stop": ["</s>", "###"],
