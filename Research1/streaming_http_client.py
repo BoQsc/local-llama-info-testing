@@ -16,9 +16,11 @@ def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a w
     )
 
     data = {
-        "stop": ["</s>"],
+
+        "stop": ["</s>", "###"],
         "stream": True,
         "prompt": alpaca_prompt_template,   # . as prompt leads to utf error.
+        
     }
 
 
@@ -52,4 +54,4 @@ def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a w
         return json_line
     return api_request()
 
-print(alpaca_agent(user_message="", system_prompt="")["generation_settings"]["model"])
+alpaca_agent(user_message="write 't'")
