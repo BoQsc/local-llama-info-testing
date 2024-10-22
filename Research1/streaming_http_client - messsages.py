@@ -1,24 +1,28 @@
 import http.client
 import json
 
-messages_history = [
- "\n\n### Instruction:\nSomeMessage",
- "\n\n### Response:\nSomeMessage2",
-]
+
 
 def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a waffle capybara that's chill"):
     alpaca_system_prompt = "\nBelow is an instruction that describes a task. Write a response that appropriately completes the request."
     if system_prompt == "": alpaca_system_prompt = ""
     assistant_prefill = "" #"```html"
 
-    alpaca_prompt_template = (
+    messages_history = [
+    "\n\n### Instruction:\nboqsc is wow player.",
+    "\n\n### Response:\nunderstood.",
+    ]
+
+
+    alpaca_prompt_template = [
         system_prompt +
         alpaca_system_prompt +
+        str(messages_history) +
         "\n\n### Instruction:\n" +
         user_message +
         "\n\n### Response:\n" +
         (assistant_message := assistant_prefill + "")
-    )
+    ]
 
     data = {
 
@@ -60,4 +64,6 @@ def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a w
     return api_request()
 
 #alpaca_agent(user_message="write 't'")
-alpaca_agent("hello")
+alpaca_agent("are you aware of boqsc?")
+
+input()
