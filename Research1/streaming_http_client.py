@@ -48,7 +48,7 @@ def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a w
                     print(f"Error decoding JSON: {data_line}")  
             print(json_line["timings"]["predicted_per_second"])
         conn.close()
-        return json.dumps(json_line, indent=2)
+        return json_line
     return api_request()
 
-print(alpaca_agent("Hello"))
+print(alpaca_agent("Hello")["generation_settings"]["model"])
