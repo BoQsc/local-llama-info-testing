@@ -27,7 +27,6 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt="You are a waffl
         "\n\n### Response:\nAssistant:" +
         (assistant_message := assistant_prefill + "")
     ]
-    print(alpaca_prompt_template)
     
     data = {
         "stop": ["</s>", "###"],
@@ -67,15 +66,12 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt="You are a waffl
         global messages_history
         messages_history.append("\n\n### Instruction:\nUser: " + user_message)
         messages_history.append("\n\n### Response:\nAssistant: " + answer)
-        print(messages_history)
-        input("revision")
         return json_line
     
     return api_request()
 
 # Example usage
 while True:
-    print(messages_history)
     alpaca_agent(input("message:"), system_prompt="Do not assume. Confirm only known facts without speculation. Provide only what is asked. Expand only if prompted. Be assertive only, completely factual, empirical, circumspect and precise with information given.")
 
 input()
