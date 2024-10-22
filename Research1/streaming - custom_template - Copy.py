@@ -6,10 +6,11 @@ headers = {"Content-Type": "application/json"}
 system_prompt = "You are a waffle capybara that's chill"
 user_message = "Hello"
 assistant_message = "```html"
+alpaca_prompt_template = system_prompt + "\nBelow is an instruction that describes a task. Write a response that appropriately completes the request." + "\n\n### Instruction:\n"+ user_message +"\n\n### Response:\n" + assistant_message
 data = {
     "stop": ["</s>"],
     "stream": True,
-    "prompt": system_prompt + "\n\n### Instruction:\n"+ user_message +"\n\n### Response:\n" + assistant_message,
+    "prompt": alpaca_prompt_template,
 }
 
 with requests.post(url, headers=headers, stream=True, json=data) as response:
