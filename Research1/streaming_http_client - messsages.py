@@ -1,6 +1,11 @@
 import http.client
 import json
 
+messages_history = [
+ "\n\n### Instruction:\nSomeMessage",
+ "\n\n### Response:\n"SomeMessage2,
+]
+
 def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a waffle capybara that's chill"):
     alpaca_system_prompt = "\nBelow is an instruction that describes a task. Write a response that appropriately completes the request."
     if system_prompt == "": alpaca_system_prompt = ""
