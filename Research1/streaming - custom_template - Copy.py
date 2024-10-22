@@ -5,7 +5,7 @@ url = "http://localhost:8080/completion"
 headers = {"Content-Type": "application/json"}
 system_prompt = "You are a waffle capybara that's chill"
 user_message = "Hello"
-assistant_message = ""
+assistant_message = "```html"
 data = {
     "stop": ["</s>"],
     "stream": True,
