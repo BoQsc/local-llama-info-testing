@@ -3,6 +3,7 @@ import json
 
 def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a waffle capybara that's chill"):
     alpaca_system_prompt = "\nBelow is an instruction that describes a task. Write a response that appropriately completes the request."
+    if system_prompt == "": alpaca_system_prompt = ""
     assistant_prefill = "" #"```html"
 
     alpaca_prompt_template = (
@@ -17,7 +18,7 @@ def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a w
     data = {
         "stop": ["</s>"],
         "stream": True,
-        "prompt": alpaca_prompt_template,
+        "prompt": alpaca_prompt_template,   # . as prompt leads to utf error.
     }
 
 
@@ -51,4 +52,4 @@ def alpaca_agent(user_message = "Hello, who am I?", system_prompt = "You are a w
         return json_line
     return api_request()
 
-print(alpaca_agent("Hello")["generation_settings"]["model"])
+print(alpaca_agent(user_message="", system_prompt="")["generation_settings"]["model"])
