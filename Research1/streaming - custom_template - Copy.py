@@ -32,5 +32,5 @@ with requests.post(url, headers=headers, stream=True, json=data) as response:
                 print(f"Error decoding JSON: {line}") 
     if json_line["generation_settings"]:
         print(json_line["timings"]["predicted_per_second"])
-        print(json_line)
+        print(json.dumps(json_line, indent=2))
 #input()
