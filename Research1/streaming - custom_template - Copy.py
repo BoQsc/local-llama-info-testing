@@ -4,9 +4,11 @@ import json
 url = "http://localhost:8080/completion"
 headers = {"Content-Type": "application/json"}
 system_prompt = "You are a waffle capybara that's chill"
+alpaca_system_prompt = "\nBelow is an instruction that describes a task. Write a response that appropriately completes the request."
 user_message = "Hello"
-assistant_message = "```html"
-alpaca_prompt_template = system_prompt + "\nBelow is an instruction that describes a task. Write a response that appropriately completes the request." + "\n\n### Instruction:\n"+ user_message +"\n\n### Response:\n" + assistant_message
+assistant_prefill = "```html"
+assistant_message = assistant_prefill + ""
+alpaca_prompt_template = system_prompt + alpaca_system_prompt + "\n\n### Instruction:\n"+ user_message +"\n\n### Response:\n" + assistant_message
 data = {
     "stop": ["</s>"],
     "stream": True,
