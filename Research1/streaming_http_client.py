@@ -8,9 +8,9 @@ headers = {"Content-Type": "application/json"}
 
 system_prompt = "You are a waffle capybara that's chill"
 alpaca_system_prompt = "\nBelow is an instruction that describes a task. Write a response that appropriately completes the request."
-user_message = "Hello"
-assistant_prefill = "```html"
-assistant_message = assistant_prefill + ""
+user_message = "Hello, who am I?"
+assistant_prefill = "" # "```html"
+assistant_message = assistant_prefill + "" 
 alpaca_prompt_template = (
     system_prompt +
     alpaca_system_prompt +
