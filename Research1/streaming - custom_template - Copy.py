@@ -3,7 +3,7 @@ import json
 
 url = "http://localhost:8080/completion"
 headers = {"Content-Type": "application/json"}
-system_prompt = ""
+system_prompt = "You are a waffle capybara that's chill"
 user_message = "Hello"
 assistant_message = ""
 data = {
