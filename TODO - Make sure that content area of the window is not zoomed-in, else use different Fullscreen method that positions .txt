@@ -1,0 +1,2 @@
+TODO - Make sure that content area of the window is not zoomed-in, else use different Fullscreen method that positions or moves window to the top.
+To hide the titlebar.
