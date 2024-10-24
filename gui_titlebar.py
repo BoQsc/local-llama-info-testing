@@ -82,6 +82,7 @@ titlebar.maximize_button.pack(side=tk.RIGHT)
 titlebar.minimize_button.pack(side=tk.RIGHT)  
 
 #______________Title_Bar_Dragging___________________
+# Add window dragging functionality
 def get_pos(event):
     global xwin, ywin
     xwin = event.x
@@ -105,79 +106,5 @@ titlebar.name.bind('<Button-1>', drag_to_restore, add="+")
 
 # Set the window to appear in the taskbar
 window.after(10, lambda: set_appwindow(window))
-
-#______________Window_Resize_By_Drag___________________
-border_size = 10  # Width of the resize border area
-resize_dir = None
-
-def moveMouseButton(e):
-    global resize_dir, window
-    x1 = e.x_root
-    y1 = e.y_root
-    x0 = window.winfo_rootx()
-    y0 = window.winfo_rooty()
-    w = window.winfo_width()
-    h = window.winfo_height()
-
-    if resize_dir == 'right':
-        window.geometry(f"{x1 - x0}x{h}")
-    elif resize_dir == 'bottom':
-        window.geometry(f"{w}x{y1 - y0}")
-    elif resize_dir == 'corner':
-        window.geometry(f"{x1 - x0}x{y1 - y0}")
-    elif resize_dir == 'left':
-        new_width = w - (x1 - x0)
-        new_x = x1
-        window.geometry(f"{new_width}x{h}+{new_x}+{y0}")
-    elif resize_dir == 'top' and window.state() != 'zoomed':  # Disable top resize when maximized
-        new_height = h - (y1 - y0)
-        new_y = y1
-        window.geometry(f"{w}x{new_height}+{x0}+{new_y}")
-
-# Handling resize operations
-def detect_resize_dir(e):
-    global resize_dir, window
-    x, y = e.x, e.y
-    w, h = window.winfo_width(), window.winfo_height()
-
-    if y < border_size and window.state() != 'zoomed':  # Top edge
-        resize_dir = 'top'
-        window.config(cursor="size_ns")
-    elif y > h - border_size:  # Bottom side
-        resize_dir = 'bottom'
-        window.config(cursor="size_ns")
-    elif x < border_size:  # Left side
-        resize_dir = 'left'
-        window.config(cursor="size_we")
-    elif x > w - border_size:  # Right side
-        resize_dir = 'right'
-        window.config(cursor="size_we")
-    elif (x > w - border_size and y > h - border_size):  # Bottom-right corner
-        resize_dir = 'corner'
-        window.config(cursor="size_nw_se")
-    else:
-        resize_dir = None
-        window.config(cursor="arrow")
-
-# Bind mouse events for window resize
-window.bind("<Motion>", detect_resize_dir)
-window.bind("<Leave>", lambda e: window.config(cursor="arrow"))
-
-# Make the border area around the window trigger resize
-window.bind("<Button-1>", lambda e: moveMouseButton(e) if (e.y < border_size or e.x > window.winfo_width() - border_size or e.y > window.winfo_height() - border_size or e.x < border_size) else None)
-
-# Ignore Motion events on title bar and buttons
-def ignore_events(event):
-    pass
-
-# Bind ignore events to the title bar and buttons
-titlebar.bind("<Motion>", ignore_events)
-titlebar.name.bind("<Motion>", ignore_events)
-titlebar.minimize_button.bind("<Motion>", ignore_events)
-titlebar.maximize_button.bind("<Motion>", ignore_events)
-titlebar.exit_button.bind("<Motion>", ignore_events)
-
-# Additional bindings for resizing functionality
-window.bind("<B1-Motion>", moveMouseButton)  # Bind to allow resizing when dragging
 
 window.mainloop()
