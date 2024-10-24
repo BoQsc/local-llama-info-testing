@@ -15,7 +15,7 @@ class CustomWindow(tk.Tk):
 
     def start_drag(self, event):
         self.dragging = True
-        self.offset = event.y + 10  # Offset to make cursor 10px below
+        self.offset = event.y + 5  # Offset to make cursor 10px below
 
     def do_drag(self, event):
         if self.dragging:

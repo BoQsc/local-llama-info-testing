@@ -151,18 +151,25 @@ def drag_to_restore(event):
     drag_start_y = event.y_root
 
     if window.state() == 'zoomed':
+        # Save the current position of the mouse relative to the window
         width_ratio = xwin / window.winfo_width()
+        height_ratio = ywin / window.winfo_height()
+
+        # Restore the window
         window.state('normal')
         window.update_idletasks()
 
+        # Calculate the new position of the window
         new_x = drag_start_x - int(window.winfo_width() * width_ratio)
-        new_y = drag_start_y - ywin
+        new_y = drag_start_y - int(window.winfo_height() * height_ratio) - 10  # Adjust for 10 pixels below the title bar
 
+        # Ensure the window stays within the screen bounds
         new_x = max(0, min(new_x, window.winfo_screenwidth() - window.winfo_width()))
         new_y = max(0, min(new_y, window.winfo_screenheight() - window.winfo_height()))
         
         window.geometry(f'+{new_x}+{new_y}')
         xwin = int(window.winfo_width() * width_ratio)
+        ywin = int(window.winfo_height() * height_ratio) + 10  # Adjust for 10 pixels below the title bar
 
 def set_appwindow(root):
     GWL_EXSTYLE = -20
@@ -206,7 +213,7 @@ titlebar.name = tk.Label(titlebar, text=window.title(), bg="#2c2c2c", fg="white"
 
 #______________Title_Bar_Buttons___________________
 titlebar.minimize_button = tk.Button(titlebar, command=minimize_window)
-titlebar.maximize_button = tk.Button(titlebar, command=lambda: window.state('zoomed') if window.state() != 'zoomed' else window.state('normal'))
+titlebar.maximize_button = tk.Button(titlebar, command=lambda: toggle_maximize(None))
 titlebar.exit_button = tk.Button(titlebar, command=window.destroy)
 
 #______________Button_Configurations___________________
