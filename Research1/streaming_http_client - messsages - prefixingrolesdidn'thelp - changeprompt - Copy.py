@@ -15,6 +15,7 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt="You are a waffl
             "\n\n### Response:\nAssistant: understood.",
             "\n\n### Response:\nAssistant: My name is hamham.",
         ]
+    messages_history= []
 
     #system_prompt = "The '### Instruction:' is Human. The '### Response:' is Assistant." + system_prompt
 
