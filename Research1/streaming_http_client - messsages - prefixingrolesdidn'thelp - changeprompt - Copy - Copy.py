@@ -1,5 +1,11 @@
 import http.client
 import json
+
+def timestamp():
+    import datetime 
+    return str(datetime.datetime.now(datetime.timezone.utc))
+
+
 global messages_history
 messages_history = []
 def alpaca_agent(user_message="Hello, who am I?", system_prompt=""):
@@ -23,9 +29,9 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt=""):
         system_prompt +
         "".join(messages_history) +
         #alpaca_system_prompt +
-        "\n\n### Instruction:\nUser:" +
+        "\n\n### " + timestamp() + " User:\n" +
         user_message +
-        "\n\n### Response:\nAssistant:" +
+        "\n\n### " + timestamp() + " Assistant(System administrator that produce scripts):\n" +
         (assistant_message := assistant_prefill + "")
     ]
     
@@ -65,8 +71,8 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt=""):
             print(json_line["timings"]["predicted_per_second"])
         conn.close()
         global messages_history
-        messages_history.append("\n\n### Instruction:\nUser: " + user_message)
-        messages_history.append("\n\n### Response:\nAssistant: " + answer)
+        messages_history.append("\n\n### " + timestamp() + " User:\n" + user_message)
+        messages_history.append("\n\n### " + timestamp() + " Assistant(System administrator that produce scripts):\n" + answer)
         return json_line
     
     return api_request()
