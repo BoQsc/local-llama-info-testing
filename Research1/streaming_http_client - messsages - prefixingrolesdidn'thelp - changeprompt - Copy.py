@@ -73,6 +73,7 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt="You are a waffl
 
 # Example usage
 while True:
-    alpaca_agent(input("message:"), system_prompt="Do not assume. Confirm only known facts without speculation. Provide only what is asked. Expand only if prompted. Be assertive only, completely factual, empirical, circumspect and precise with information given.")
+    alpaca_agent(input("message:"))
+    #alpaca_agent(input("message:"), system_prompt="Do not assume. Confirm only known facts without speculation. Provide only what is asked. Expand only if prompted. Be assertive only, completely factual, empirical, circumspect and precise with information given.")
 
 input()
