@@ -22,7 +22,7 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt=""):
     alpaca_prompt_template = [
         system_prompt +
         "".join(messages_history) +
-        alpaca_system_prompt +
+        #alpaca_system_prompt +
         "\n\n### Instruction:\nUser:" +
         user_message +
         "\n\n### Response:\nAssistant:" +
