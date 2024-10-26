@@ -31,30 +31,8 @@ window.geometry("300x300")
 window.configure(bg='#2c2c2c')
 window.update()
 import time
-time.sleep(1)
 
-print("setting to fullscreen")
-window.attributes('-fullscreen', not window.attributes('-fullscreen'))
-window.update()
-time.sleep(1)
 
-print("back from fullscreen")
-window.attributes('-fullscreen', not window.attributes('-fullscreen'))
-set_immersive_dark_mode()
-window.update()
-window.geometry("300x301")
 
-print("setting to fullscreen")
-window.attributes('-fullscreen', not window.attributes('-fullscreen'))
-window.update()
-time.sleep(1)
-
-print("back from fullscreen")
-window.attributes('-fullscreen', not window.attributes('-fullscreen'))
-set_immersive_dark_mode()
-window.update()
-window.geometry("300x300")
-
-print("done")
 
 window.mainloop()
