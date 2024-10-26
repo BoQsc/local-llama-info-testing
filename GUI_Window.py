@@ -45,6 +45,10 @@ def main():
         titlebar.bind("<B1-Motion>", dragger.on_mouse_drag)
         titlebar.bind("<ButtonRelease-1>", lambda event: dragger.reset_drag())  # Reset drag on release
 
+        # Bind the same dragging functionality to the title label
+        title_label.bind("<B1-Motion>", dragger.on_mouse_drag)
+        title_label.bind("<ButtonRelease-1>", lambda event: dragger.reset_drag())  # Reset drag on release
+
         # Add window content
         content_frame = Frame(window, bg="white")
         content_frame.pack(fill='both', expand=True)
