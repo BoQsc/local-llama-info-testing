@@ -16,10 +16,7 @@ set_window_attribute(hwnd, rendering_policy, ct.byref(value), ct.sizeof(value))
 window.geometry("300x300")  
 window.configure(bg='#2c2c2c')
 
-def toggle_fullscreen(event):
-    window.attributes('-fullscreen', not window.attributes('-fullscreen'))
-
-window.bind('<F11>', toggle_fullscreen)
+window.bind('<F11>',    lambda event: window.attributes('-fullscreen', not window.attributes('-fullscreen')))
 window.bind('<Escape>', lambda event: window.attributes('-fullscreen', False))
 
 window.mainloop()
