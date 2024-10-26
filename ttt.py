@@ -1,8 +1,6 @@
 import tkinter as tk
 import ctypes as ct
 
-
-# Function to set immersive dark mode
 def set_immersive_dark_mode():
     DWMWA_USE_IMMERSIVE_DARK_MODE = 20
     set_window_attribute = ct.windll.dwmapi.DwmSetWindowAttribute
@@ -19,26 +17,37 @@ window.update()
 
 window.bind('<F11>', lambda event: (
     window.update(),
-    set_immersive_dark_mode(),  # Set dark mode again
+    set_immersive_dark_mode(),  
     window.geometry("500x400"),
     window.attributes('-fullscreen', not window.attributes('-fullscreen')),
-    set_immersive_dark_mode()  # Set dark mode after fullscreen toggle
+    set_immersive_dark_mode()  
 ))
 window.bind('<Escape>', lambda event: window.attributes('-fullscreen', False))
+
+print("setting dark color")
 
 set_immersive_dark_mode()
 window.geometry("300x300")
 window.configure(bg='#2c2c2c')
+window.update()
 
 import time
-time.sleep(2)
+time.sleep(1)
+
+print("setting to fullscreen")
 window.attributes('-fullscreen', not window.attributes('-fullscreen'))
 window.geometry("300x300")
-time.sleep(4)
+window.update()
+time.sleep(1)
+
+
+
+print("back from fullscreen")
 window.attributes('-fullscreen', not window.attributes('-fullscreen'))
-window.geometry("300x300")
-time.sleep(4)
 set_immersive_dark_mode()
+window.update()
+window.geometry("300x301")
+
 print("done")
 
 window.mainloop()
