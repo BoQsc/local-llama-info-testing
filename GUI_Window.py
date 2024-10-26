@@ -1,9 +1,45 @@
-from contextlib import contextmanager
-from tkinter import Tk, Frame, Label
 import tkinter as tk
+from tkinter import Tk, Frame, Label
 
+
+def main():
+    with tk_app() as window:
+        window.title("Example")
+        window.geometry("300x300")
+        window.overrideredirect(True)
+        
+        titlebar = Frame(window, bg="#2c2c2c", height=30)  
+        title_label = Label(titlebar, text="Custom Title Bar", bg="#2c2c2c", fg="white")
+        
+        content = Frame(window, bg="white")
+        Label(content, text="Window Content", bg="white")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from contextlib import contextmanager
 @contextmanager
-def tk_app():
+def _tk_app():
     class AutoPackTk(Tk):
         def __init__(self):
             super().__init__()
@@ -27,13 +63,7 @@ def tk_app():
     finally:
         root.destroy()
 
-with tk_app() as window:
-    window.title("Example")
-    window.geometry("300x300")
-    window.overrideredirect(True)
-    
-    titlebar = Frame(window, bg="#2c2c2c", height=30)  
-    title_label = Label(titlebar, text="Custom Title Bar", bg="#2c2c2c", fg="white")
-    
-    content = Frame(window, bg="white")
-    Label(content, text="Window Content", bg="white")
+tk_app = _tk_app
+
+if __name__ == "__main__":
+    main()
