@@ -10,9 +10,8 @@ def main():
         
         titlebar = Frame(window, bg="#2c2c2c", height=30)  
         title_label = Label(titlebar, text="Custom Title Bar", bg="#2c2c2c", fg="white")
-        
-        content = Frame(window, bg="white")
-        Label(content, text="Window Content", bg="white")
+
+        Label(Frame(window, bg="white"), text="Window Content", bg="white")
 
 
 
