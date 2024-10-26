@@ -2,6 +2,27 @@ import tkinter as tk
 from tkinter import Tk, Frame, Label
 from contextlib import contextmanager
 
+class DraggableWindow:
+    def __init__(self, window):
+        self.window = window
+        self.drag_data = {"x": 0, "y": 0}
+
+    def on_mouse_drag(self, event):
+        # Use the current mouse position to set the initial drag position
+        if self.drag_data["x"] == 0 and self.drag_data["y"] == 0:
+            self.drag_data["x"] = event.x
+            self.drag_data["y"] = event.y
+
+        # Calculate the new position and move the window
+        x = self.window.winfo_x() + (event.x - self.drag_data["x"])
+        y = self.window.winfo_y() + (event.y - self.drag_data["y"])
+        self.window.geometry(f"+{x}+{y}")
+
+    def reset_drag(self):
+        # Reset drag data when the mouse button is released
+        self.drag_data["x"] = 0
+        self.drag_data["y"] = 0
+
 
 def main():
     with tk_app() as window:
@@ -17,28 +38,17 @@ def main():
         title_label = Label(titlebar, text="Custom Title Bar", bg="#2c2c2c", fg="white")
         title_label.pack(side='left', padx=5)
 
+        # Create the draggable functionality
+        dragger = DraggableWindow(window)
+
         # Bind mouse events for dragging
-        titlebar.bind("<Button-1>", lambda event: on_button_press(event, window))
-        titlebar.bind("<B1-Motion>", lambda event: on_mouse_drag(event, window))
+        titlebar.bind("<B1-Motion>", dragger.on_mouse_drag)
+        titlebar.bind("<ButtonRelease-1>", lambda event: dragger.reset_drag())  # Reset drag on release
 
         # Add window content
         content_frame = Frame(window, bg="white")
         content_frame.pack(fill='both', expand=True)
         Label(content_frame, text="Window Content", bg="white").pack()
-
-
-def on_button_press(event, window):
-    # Store the current mouse position
-    global x_offset, y_offset
-    x_offset = event.x
-    y_offset = event.y
-
-
-def on_mouse_drag(event, window):
-    # Calculate new position and move the window
-    x = event.x_root - x_offset
-    y = event.y_root - y_offset
-    window.geometry(f"+{x}+{y}")
 
 
 @contextmanager
