@@ -1,0 +1,1 @@
+Currently I have a problem where if you do drag-to-restore on drag titlebar, the cursor appears near the titlebar buttons, when it should reserve cursor from appearing over the titlebar buttons when the drag-to-restore is being done.
