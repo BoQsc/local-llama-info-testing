@@ -9,9 +9,10 @@ customrole =""
 global messages_history
 messages_history = []
 def alpaca_agent(user_message="Hello, who am I?", system_prompt=""):
-    alpaca_system_prompt = "\nBelow is an instruction that describes a task. Write a response that appropriately completes the request."
+    alpaca_system_prompt = ""
     if system_prompt == "":
-        alpaca_system_prompt = ""
+        alpaca_system_prompt = "\nBelow is an instruction that describes a task. Write a response that appropriately completes the request."
+
     
     assistant_prefill = ""  # "```html"
     global messages_history
@@ -28,7 +29,7 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt=""):
     alpaca_prompt_template = [
         system_prompt +
         "".join(messages_history) +
-        #alpaca_system_prompt +
+        alpaca_system_prompt +
         "\n\n### " + timestamp() + " User:\n" +
         user_message +
         "\n\n### " + timestamp() + " Memory(assist with memorization):\n" +
@@ -39,6 +40,7 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt=""):
         "stop": ["</s>", "###"],
         "stream": True,
         "prompt": alpaca_prompt_template,  # . as prompt leads to utf error.
+
     }
 
     def api_request():
