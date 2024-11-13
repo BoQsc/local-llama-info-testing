@@ -2,3 +2,5 @@ Currently I have a problem where if you do drag-to-restore on drag titlebar, the
 To address the issue of the cursor appearing over the title bar buttons during the drag-to-restore operation, you can adjust the cursor position to ensure it remains in the middle of the title bar, or at least not over the buttons. This can be achieved by checking the cursor's position relative to the buttons and adjusting it accordingly.
 
 Make sure that cursor do not appear over the buttons area on drag-to-restore.
+
+We need to make a group around the titlebar buttons.
