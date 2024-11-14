@@ -4,3 +4,5 @@ To address the issue of the cursor appearing over the title bar buttons during t
 Make sure that cursor do not appear over the buttons area on drag-to-restore.
 
 We need to make a group around the titlebar buttons.
+
+Problem persists: Cursor is still on top of the grouped title buttons while doing drag-to-restore. I maximize, I drag titlebar down, the mouse cursor appears over the titlebar buttons. 
