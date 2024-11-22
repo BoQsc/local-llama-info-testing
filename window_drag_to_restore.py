@@ -1,70 +1,86 @@
 import tkinter as tk
 
-class CustomWindow(tk.Tk):
-    def __init__(self):
-        super().__init__()
+# Toggle maximize/restore window state
+def toggle_maximize(event):
+    if window.state() == 'zoomed':
+        window.state('normal')
+        titlebar.maximize_button.config(text='🗖')
+    else:
+        window.state('zoomed')
+        titlebar.maximize_button.config(text='❐')
 
-        # Initially disable original titlebar
-        self.overrideredirect(True)
+# Function to drag the window to restore it when maximized
+def drag_to_restore(event):
+    global xwin, ywin, drag_start_x, drag_start_y
+    drag_start_x = event.x_root
+    drag_start_y = event.y_root
 
-        # Create the custom titlebar frame
-        self.titlebar = tk.Frame(self, bg="gray", relief="raised", bd=2)
-        self.titlebar.pack(fill="x")
+    if window.state() == 'zoomed':
+        # Save the current position of the mouse relative to the window
+        width_ratio = xwin / window.winfo_width()
+        height_ratio = ywin / window.winfo_height()
 
-        # Add the custom title label
-        self.title_label = tk.Label(self.titlebar, text="Custom Titlebar", fg="white", bg="gray")
-        self.title_label.pack(side="left", padx=10)
+        # Restore the window
+        window.state('normal')
+        window.update_idletasks()
 
-        # Add a button to toggle fullscreen
-        self.fullscreen_button = tk.Button(self.titlebar, text="Fullscreen", command=self.toggle_fullscreen)
-        self.fullscreen_button.pack(side="right", padx=10)
+        # Calculate the new position of the window
+        new_x = drag_start_x - int(window.winfo_width() * width_ratio)
+        new_y = drag_start_y - int(window.winfo_height() * height_ratio) - 10  # Adjust for 10 pixels below the title bar
 
-        # Add content area for testing
-        self.content = tk.Label(self, text="Content goes here", font=("Arial", 20))
-        self.content.pack(expand=True)
+        # Ensure the window stays within the screen bounds
+        new_x = max(0, min(new_x, window.winfo_screenwidth() - window.winfo_width()))
+        new_y = max(0, min(new_y, window.winfo_screenheight() - window.winfo_height()))
+        
+        window.geometry(f'+{new_x}+{new_y}')
+        xwin = int(window.winfo_width() * width_ratio)
+        ywin = int(window.winfo_height() * height_ratio) + 10  # Adjust for 10 pixels below the title bar
 
-        # Variables for drag functionality
-        self._drag_data = {"x": 0, "y": 0}
+# Create main window
+window = tk.Tk()
+window.title("Drag to Restore and Maximize Example")
+window.geometry("300x300")
+window.overrideredirect(True)
+window.configure(bg='#2c2c2c')
 
-        # Store the original geometry before going fullscreen
-        self._normal_geometry = self.geometry()
+# Title Bar
+titlebar = tk.Frame(window, bg="#2c2c2c")
+titlebar.name = tk.Label(titlebar, text=window.title(), bg="#2c2c2c", fg="white")
+titlebar_buttons = tk.Frame(titlebar, bg="#2c2c2c")
 
-        # Bind mouse events for dragging
-        self.titlebar.bind("<ButtonPress-1>", self.on_drag_start)
-        self.titlebar.bind("<B1-Motion>", self.on_drag_motion)
+# Maximize button
+titlebar.maximize_button = tk.Button(titlebar_buttons, command=lambda: toggle_maximize(None))
+titlebar.maximize_button.config(bg="#2c2c2c", fg='white', activebackground="red", activeforeground="white", padx=5, pady=2, bd=0, width=2, highlightthickness=0)
+titlebar.maximize_button.config(text='🗖', font="bold")
 
-    def on_drag_start(self, event):
-        """Initiate the drag action when the titlebar is clicked."""
-        self._drag_data["x"] = event.x
-        self._drag_data["y"] = event.y
+# Arrange buttons
+titlebar.pack(fill=tk.X)
+titlebar.name.pack(side='left', padx=5)
+titlebar_buttons.pack(side=tk.RIGHT)
+titlebar.maximize_button.pack(side=tk.LEFT)
 
-    def on_drag_motion(self, event):
-        """Move the window as the mouse is dragged."""
-        delta_x = event.x - self._drag_data["x"]
-        delta_y = event.y - self._drag_data["y"]
-        new_x = self.winfo_x() + delta_x
-        new_y = self.winfo_y() + delta_y
-        self.geometry(f"+{new_x}+{new_y}")
+# Window dragging functionality
+def get_pos(event):
+    global xwin, ywin
+    xwin = event.x
+    ywin = event.y
 
-    def toggle_fullscreen(self):
-        """Toggle fullscreen mode for testing drag-to-restore."""
-        if self.attributes("-fullscreen"):
-            # Exit fullscreen mode
-            self.attributes("-fullscreen", False)
-            self.geometry(self._normal_geometry)  # Restore the original geometry
-            self.overrideredirect(True)  # Re-enable the custom titlebar
-        else:
-            # Save the current window state (geometry) before entering fullscreen
-            self._normal_geometry = self.geometry()
+def move_window(event):
+    window.geometry(f'+{event.x_root - xwin}+{event.y_root - ywin}')
 
-            # Disable the custom titlebar for fullscreen mode
-            self.overrideredirect(False)
+# Bind dragging functionality to titlebar
+titlebar.bind('<Button-1>', get_pos)
+titlebar.bind('<B1-Motion>', move_window)
+titlebar.name.bind('<Button-1>', get_pos)
+titlebar.name.bind('<B1-Motion>', move_window)
 
-            # Enable fullscreen mode
-            self.attributes("-fullscreen", True)
-            self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}")  # Set to fullscreen size
+# Double-click to toggle maximize/restore window state
+titlebar.bind('<Double-1>', toggle_maximize)
+titlebar.name.bind('<Double-1>', toggle_maximize)
 
-if __name__ == "__main__":
-    window = CustomWindow()
-    window.geometry("800x600")  # Initial size
-    window.mainloop()
+# Bind drag-to-restore functionality when maximized
+titlebar.bind('<Button-1>', drag_to_restore, add="+")
+titlebar.name.bind('<Button-1>', drag_to_restore, add="+")
+
+# Start the Tkinter main loop
+window.mainloop()
