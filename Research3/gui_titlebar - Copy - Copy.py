@@ -211,10 +211,12 @@ content_frame.place(x=2, y=25, relwidth=1, relheight=1, width=-4, height=-27)
 titlebar = tk.Frame(window, bg="#2c2c2c")
 titlebar.name = tk.Label(titlebar, text=window.title(), bg="#2c2c2c", fg="white")
 
-#______________Title_Bar_Buttons___________________
-titlebar.minimize_button = tk.Button(titlebar, command=minimize_window)
-titlebar.maximize_button = tk.Button(titlebar, command=lambda: toggle_maximize(None))
-titlebar.exit_button = tk.Button(titlebar, command=window.destroy)
+#______________Title_Bar_Buttons Group___________________
+titlebar_buttons = tk.Frame(titlebar, bg="#2c2c2c")
+
+titlebar.minimize_button = tk.Button(titlebar_buttons, command=minimize_window)
+titlebar.maximize_button = tk.Button(titlebar_buttons, command=lambda: toggle_maximize(None))
+titlebar.exit_button = tk.Button(titlebar_buttons, command=window.destroy)
 
 #______________Button_Configurations___________________
 for button in (titlebar.minimize_button, titlebar.maximize_button, titlebar.exit_button):
@@ -231,10 +233,12 @@ titlebar.exit_button.config(text='🗙', font="bold")
 #_______________Layout_____________________
 titlebar.pack(fill=tk.X)  
 titlebar.name.pack(side='left', padx=5)  
-titlebar.exit_button.pack(side=tk.RIGHT)  
-titlebar.maximize_button.pack(side=tk.RIGHT)  
-titlebar.minimize_button.pack(side=tk.RIGHT)  
 
+# Pack buttons into the titlebar_buttons frame
+titlebar_buttons.pack(side=tk.RIGHT)  
+titlebar.minimize_button.pack(side=tk.LEFT)  
+titlebar.maximize_button.pack(side=tk.LEFT)  
+titlebar.exit_button.pack(side=tk.LEFT)  
 #______________Title_Bar_Dragging___________________
 # Add window dragging functionality
 def get_pos(event):
