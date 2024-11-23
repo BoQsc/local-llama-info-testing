@@ -1,0 +1,3 @@
+Titlebar buttons are pushed towards the cursor:
+Keep the titlebar buttons group size static
+Make resize happen from left side
