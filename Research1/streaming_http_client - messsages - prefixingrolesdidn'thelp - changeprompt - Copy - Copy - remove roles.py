@@ -11,9 +11,9 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt="You are a waffl
     global messages_history
     if messages_history == []:
         messages_history += [
-            "\n\n### Instruction:\nUser: boqsc is wow player.",
-            "\n\n### Response:\nAssistant: understood.",
-            "\n\n### Response:\nAssistant: My name is hamham.",
+            "\n\n### Instruction:\nboqsc is wow player.",
+            "\n\n### Response:\nunderstood.",
+            "\n\n### Response:\nMy name is hamham.",
         ]
         messages_history= []
 
@@ -23,9 +23,9 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt="You are a waffl
         system_prompt +
         "".join(messages_history) +
         alpaca_system_prompt +
-        "\n\n### Instruction:\nUser:" +
+        "\n\n### Instruction:\n" +
         user_message +
-        "\n\n### Response:\nAssistant:" +
+        "\n\n### Response:\n" +
         (assistant_message := assistant_prefill + "")
     ]
     
@@ -65,8 +65,8 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt="You are a waffl
             print(json_line["timings"]["predicted_per_second"])
         conn.close()
         global messages_history
-        messages_history.append("\n\n### Instruction:\nUser: " + user_message)
-        messages_history.append("\n\n### Response:\nAssistant: " + answer)
+        messages_history.append("\n\n### Instruction:\n" + user_message)
+        messages_history.append("\n\n### Response:\n" + answer)
         print(messages_history)
         return json_line
     
