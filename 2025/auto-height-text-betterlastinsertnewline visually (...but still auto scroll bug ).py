@@ -41,6 +41,7 @@ root.title("Auto-height Text Area")
 
 # Create text widget with initial height of 1
 text = AutoHeightText(root, width=40, height=1)
-text.pack(padx=10, pady=10)
+text.pack(anchor='n')  # Explicitly anchor to top
+
 
 root.mainloop()

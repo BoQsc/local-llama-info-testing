@@ -1,31 +1,46 @@
 import tkinter as tk
 
-class AutoHeightText(tk.Text):
-    def __init__(self, master=None, **kwargs):
-        super().__init__(master, **kwargs)
-        self.bind('<<Modified>>', self.queue_adjust_height)
-        self._adjust_id = None
+class CustomTextBox:
+    def __init__(self, master, width, height):
+        self.master = master
+        self.width = width
+        self.height = height
+        self.text = []
+        self.font = ("Arial", 12)
+        self.line_height = 20
+        self.canvas = tk.Canvas(self.master, width=width, height=height)
+        self.canvas.pack()
+        self.entry = tk.Entry(self.master)
+        self.entry.pack()
+        self.button = tk.Button(self.master, text="Add Text", command=self.add_text)
+        self.button.pack()
 
-    def queue_adjust_height(self, event=None):
-        if self._adjust_id:
-            self.after_cancel(self._adjust_id)  # Cancel any pending adjustments
-        self._adjust_id = self.after(100, self.adjust_height)  # Delay height adjustment
+    def add_text(self):
+        text = self.entry.get()
+        self.text.append(text)
+        self.entry.delete(0, tk.END)
+        self.draw_text()
 
-    def adjust_height(self):
-        if self.edit_modified():
-            num_lines = int(self.index('end-1c').split('.')[0])
-            self.configure(height=num_lines if num_lines > 0 else 1)
-            self.edit_modified(False)
-        self._adjust_id = None
+    def draw_text(self):
+        self.canvas.delete("all")
+        x = 10
+        y = 10
+        for line in self.text:
+            words = line.split()
+            current_line = ""
+            for word in words:
+                if self.canvas.winfo_width() - x < self.get_text_width(word + " "):
+                    x = 10
+                    y += self.line_height
+                current_line += word + " "
+                self.canvas.create_text(x, y, text=current_line, anchor="nw", font=self.font)
+                x += self.get_text_width(word + " ")
+            x = 10
+            y += self.line_height
 
-# Demo
+    def get_text_width(self, text):
+        return len(text) * 8
+
 root = tk.Tk()
-root.title("Auto-height Text Area")
-
-frame = tk.Frame(root)
-frame.pack(padx=10, pady=10, fill='x')
-
-text = AutoHeightText(frame, width=40, height=1)
-text.pack(anchor='n', fill='x', expand=True)
-
+custom_text_box = CustomTextBox(root, 400, 300)
 root.mainloop()
