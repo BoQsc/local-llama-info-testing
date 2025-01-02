@@ -3,12 +3,20 @@ import tkinter as tk
 class AutoHeightText(tk.Text):
     def __init__(self, master=None, **kwargs):
         super().__init__(master, **kwargs)
-        self.bind('<KeyRelease>', self.adjust_height)  # Adjust height after key releases
+        self.bind('<<Modified>>', self.queue_adjust_height)
+        self._adjust_id = None
 
-    def adjust_height(self, event=None):
-        self.update_idletasks()  # Ensure geometry updates are processed
-        num_lines = int(self.index('end-1c').split('.')[0])
-        self.configure(height=num_lines if num_lines > 0 else 1)
+    def queue_adjust_height(self, event=None):
+        if self._adjust_id:
+            self.after_cancel(self._adjust_id)  # Cancel any pending adjustments
+        self._adjust_id = self.after(100, self.adjust_height)  # Delay height adjustment
+
+    def adjust_height(self):
+        if self.edit_modified():
+            num_lines = int(self.index('end-1c').split('.')[0])
+            self.configure(height=num_lines if num_lines > 0 else 1)
+            self.edit_modified(False)
+        self._adjust_id = None
 
 # Demo
 root = tk.Tk()
