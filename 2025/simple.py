@@ -3,7 +3,7 @@ import tkinter
 # Add newline upon reaching the width of text.
 # How to make text create new line on reaching the total size of text widget width?
 # How to make text widget increase height when text is filling the total width size of text widget?
-
+# Typing text, reaching the end of widget width, increase height of text widget.
 window = tkinter.Tk()
 
 
