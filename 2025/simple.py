@@ -1,6 +1,7 @@
 import tkinter
 # Containter, left aligned button, left aligned text area. As the text area grows left aligned button should center in the container vertically.
 # Add newline upon reaching the width of text.
+# How to make text create new line on reaching the total size of text widget width?
 window = tkinter.Tk()
 
 
