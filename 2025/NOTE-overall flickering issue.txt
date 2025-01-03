@@ -1,0 +1,7 @@
+So the flickering of text seems to be due to bad performance of tkinter.
+Using canvas and making custom GUI widgets might address this issue.
+
+
+
+
+You get the width/size of character font and count how many characters typed against the width of text box. 
