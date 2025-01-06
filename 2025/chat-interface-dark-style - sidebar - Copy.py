@@ -345,13 +345,16 @@ class ChatInterface:
             borderwidth=0
         )
         text_widget.pack(fill='x', expand=True, padx=5, pady=5)
-        text_widget.insert_text(response['content'])
         text_widget.config(state='disabled')
 
-        self.root.update_idletasks()
-        self.container.canvas.yview_moveto(1.0)
+        for content in response:
+            text_widget.config(state='normal')
+            text_widget.insert('end', content)
+            text_widget.config(state='disabled')
+            self.root.update_idletasks()
+            self.container.canvas.yview_moveto(1.0)
 
-        self.save_conversation(response['content'])
+        self.save_conversation(text_widget.get('1.0', 'end-1c'))
 
 def alpaca_agent(user_message="Hello, who am I?", system_prompt="You are a waffle capybara that's chill"):
     alpaca_system_prompt = "\nBelow is an instruction that describes a task. Write a response that appropriately completes the request."
@@ -408,7 +411,7 @@ def alpaca_agent(user_message="Hello, who am I?", system_prompt="You are a waffl
                     content = json_line.get("content")
                     if content:
                         answer += content
-                        print(content, end='', flush=True)
+                        yield content
                 except json.JSONDecodeError:
                     print(f"Error decoding JSON: {data_line}")
             print(json_line["timings"]["predicted_per_second"])
