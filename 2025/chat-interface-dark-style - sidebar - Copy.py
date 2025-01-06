@@ -3,6 +3,7 @@ import json
 import tkinter as tk
 from tkinter import ttk
 import os
+import threading
 
 class DarkThemeStyles:
     PRIMARY_BG = "#000000"
@@ -292,9 +293,7 @@ class ChatInterface:
 
         self.save_conversation(message)
 
-        self.get_response(message)
-
-        return "break"
+        threading.Thread(target=self.get_response, args=(message,)).start()
 
     def load_conversations(self):
         for i in range(1, 100):
