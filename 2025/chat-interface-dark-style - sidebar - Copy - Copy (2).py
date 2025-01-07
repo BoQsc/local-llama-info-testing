@@ -111,9 +111,10 @@ class ScrollableContainer(tk.Frame):
         self.canvas.itemconfig(self.canvas_frame, width=event.width)
 
 class Sidebar(tk.Frame):
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent, chat_interface, **kwargs):
         super().__init__(parent, bg=DarkThemeStyles.SIDEBAR_BG, **kwargs)
-
+        self.chat_interface = chat_interface  # Store the reference
+        
         self.new_chat_btn = ttk.Button(
             self,
             text="+ New Chat",
@@ -129,8 +130,32 @@ class Sidebar(tk.Frame):
         self.conversations_frame.pack(fill="both", expand=True, padx=5)
 
     def new_chat(self):
-        chat_num = len(self.conversations_frame.winfo_children()) + 1
-        self.add_conversation(f"Chat {chat_num}")
+        # Save current chat before creating new one
+        self.chat_interface.save_current_chat()
+        
+        # Find the next available chat number
+        existing_chats = []
+        for filename in os.listdir():
+            if filename.endswith("_conversations.json"):
+                try:
+                    chat_id = int(filename.split("_")[0])
+                    existing_chats.append(chat_id)
+                except ValueError:
+                    pass
+        
+        next_chat_id = max(existing_chats + [0]) + 1
+        
+        # Clear current chat
+        for frame in self.chat_interface.message_frames:
+            frame.destroy()
+        self.chat_interface.message_frames = []
+        
+        # Create new chat
+        self.chat_interface.current_chat_id = next_chat_id
+        self.chat_interface.conversation_history[next_chat_id] = []
+        
+        # Update sidebar
+        self.chat_interface.load_conversations()
 
     def add_conversation(self, title):
         conv_btn = tk.Label(
@@ -162,7 +187,7 @@ class ChatInterface:
         self.main_container.pack(fill="both", expand=True)
 
         self.sidebar_visible = True
-        self.sidebar = Sidebar(self.main_container, width=200)
+        self.sidebar = Sidebar(self.main_container, chat_interface=self, width=200)  # Pass self as chat_interface
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
 
@@ -235,8 +260,9 @@ class ChatInterface:
         self.input_box.bind('<Return>', lambda e: self.send_message())
         self.input_box.bind('<Shift-Return>', lambda e: 'break')
 
-        self.conversation_num = 1
+        self.current_chat_id = None
         self.conversation_history = {}
+        self.message_frames = []
         self.load_conversations()
 
     def toggle_sidebar(self):
@@ -255,7 +281,112 @@ class ChatInterface:
         if not message:
             return "break"
 
-        frame_bg = (DarkThemeStyles.USER_MSG_BG if self.is_user
+        self.display_message(message, self.is_user)
+        self.input_box.delete("1.0", "end")
+
+        self.root.update_idletasks()
+        self.container.canvas.yview_moveto(1.0)
+
+        self.save_conversation(message)
+
+        threading.Thread(target=self.get_response, args=(message,)).start()
+
+    def load_conversations(self):
+        # Clear existing conversation buttons
+        for widget in self.sidebar.conversations_frame.winfo_children():
+            widget.destroy()
+            
+        # Load all existing conversations
+        existing_chats = []
+        for filename in os.listdir():
+            if filename.endswith("_conversations.json"):
+                try:
+                    chat_id = int(filename.split("_")[0])
+                    existing_chats.append(chat_id)
+                    # Only load the conversation data when needed, not all at once
+                    if chat_id not in self.conversation_history:
+                        with open(filename, 'r') as f:
+                            self.conversation_history[chat_id] = json.load(f)
+                except (ValueError, json.JSONDecodeError):
+                    pass
+        
+        # Add conversations in reverse order (newest first)
+        for chat_id in sorted(existing_chats, reverse=True):
+            self.add_conversation_button(chat_id)
+        
+        # If no chats exist, create the first one
+        if not existing_chats:
+            self.current_chat_id = 1
+            self.conversation_history[1] = []
+            self.add_conversation_button(1)
+        else:
+            self.current_chat_id = max(existing_chats)
+            self.load_chat(self.current_chat_id)
+
+    def add_conversation_button(self, chat_id):
+        conv_btn = tk.Label(
+            self.sidebar.conversations_frame,
+            text=f"Chat {chat_id}",
+            bg=DarkThemeStyles.SIDEBAR_ITEM_BG,
+            fg=DarkThemeStyles.TEXT_COLOR,
+            padx=10,
+            pady=5,
+            cursor="hand2"
+        )
+        conv_btn.pack(fill="x", pady=2)
+
+        conv_btn.bind("<Enter>", lambda e: conv_btn.configure(
+            bg=DarkThemeStyles.SIDEBAR_HOVER))
+        conv_btn.bind("<Leave>", lambda e: conv_btn.configure(
+            bg=DarkThemeStyles.SIDEBAR_ITEM_BG))
+        conv_btn.bind("<Button-1>", lambda e, id=chat_id: self.load_chat(id))
+
+    def load_chat(self, chat_id):
+        # Save current chat before switching
+        if hasattr(self, 'current_chat_id') and self.conversation_history.get(self.current_chat_id):
+            self.save_current_chat()
+        
+        # Clear current chat messages
+        for frame in self.message_frames:
+            frame.destroy()
+        self.message_frames = []
+        
+        self.current_chat_id = chat_id
+        
+        # Load the chat data if not already in memory
+        if chat_id not in self.conversation_history:
+            filename = f"{chat_id}_conversations.json"
+            if os.path.exists(filename):
+                try:
+                    with open(filename, 'r') as f:
+                        self.conversation_history[chat_id] = json.load(f)
+                except json.JSONDecodeError:
+                    self.conversation_history[chat_id] = []
+            else:
+                self.conversation_history[chat_id] = []
+        
+        # Display messages
+        messages = self.conversation_history[chat_id]
+        for i, message in enumerate(messages):
+            self.display_message(message, i % 2 == 0)  # Even indices are user messages
+
+    def save_current_chat(self):
+        if hasattr(self, 'current_chat_id'):
+            filename = f"{self.current_chat_id}_conversations.json"
+            try:
+                with open(filename, 'w') as f:
+                    json.dump(self.conversation_history[self.current_chat_id], f)
+            except Exception as e:
+                print(f"Error saving chat: {e}")
+
+    def save_conversation(self, message):
+        if self.current_chat_id not in self.conversation_history:
+            self.conversation_history[self.current_chat_id] = []
+        self.conversation_history[self.current_chat_id].append(message)
+        self.save_current_chat()
+
+    def display_message(self, message, is_user):
+        frame_bg = (DarkThemeStyles.USER_MSG_BG if is_user
                    else DarkThemeStyles.ASSISTANT_MSG_BG)
         message_frame = tk.Frame(
             self.container.scrollable_frame,
@@ -264,8 +395,9 @@ class ChatInterface:
             relief="solid"
         )
         message_frame.pack(fill="x", padx=5, pady=5)
+        self.message_frames.append(message_frame)
 
-        label_text = "User" if self.is_user else "Assistant"
+        label_text = "User" if is_user else "Assistant"
         tk.Label(
             message_frame,
             text=label_text,
@@ -285,34 +417,6 @@ class ChatInterface:
         text_widget.pack(fill='x', expand=True, padx=5, pady=5)
         text_widget.insert_text(message)
         text_widget.config(state='disabled')
-
-        self.input_box.delete("1.0", "end")
-
-        self.root.update_idletasks()
-        self.container.canvas.yview_moveto(1.0)
-
-        self.save_conversation(message)
-
-        threading.Thread(target=self.get_response, args=(message,)).start()
-
-    def load_conversations(self):
-        for i in range(1, 100):
-            filename = f"{i}_conversations.json"
-            if os.path.exists(filename):
-                with open(filename, 'r') as f:
-                    self.conversation_history[i] = json.load(f)
-                    self.sidebar.add_conversation(f"Chat {i}")
-            else:
-                break
-
-    def save_conversation(self, message):
-        if self.conversation_num not in self.conversation_history:
-            self.conversation_history[self.conversation_num] = []
-        self.conversation_history[self.conversation_num].append(message)
-
-        filename = f"{self.conversation_num}_conversations.json"
-        with open(filename, 'w') as f:
-            json.dump(self.conversation_history[self.conversation_num], f)
 
     def get_response(self, message):
         global messages_history
