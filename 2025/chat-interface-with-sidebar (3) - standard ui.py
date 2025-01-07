@@ -41,6 +41,23 @@ class DarkThemeStyles:
                        background=cls.SIDEBAR_BG,
                        foreground=cls.TEXT_COLOR,
                        padding=2)
+        style.layout('Gray.Vertical.TScrollbar', 
+                    [('Vertical.Scrollbar.trough',
+                    {'children': [('Vertical.Scrollbar.thumb', 
+                                    {'expand': '1', 'sticky': 'nswe'})],
+                        'sticky': 'ns'})])
+
+        # Scrollbar style
+        style.configure("Gray.Vertical.TScrollbar",
+                           gripcount=0,
+    background=DarkThemeStyles.SIDEBAR_ITEM_BG,
+    darkcolor=DarkThemeStyles.SIDEBAR_ITEM_BG,
+    lightcolor=DarkThemeStyles.SIDEBAR_ITEM_BG,
+    troughcolor=DarkThemeStyles.SIDEBAR_BG,
+    bordercolor=DarkThemeStyles.SIDEBAR_BG,
+    arrowcolor=DarkThemeStyles.HIGHLIGHT_COLOR)     # Arrow color
+        style.map("Gray.Vertical.TScrollbar",
+                background=[("active", "#5C5C5C")])  # Hover effect
 
 class AutoHeightText(tk.Text):
     def __init__(self, parent, width=40, **kwargs):
@@ -85,7 +102,12 @@ class ScrollableContainer(tk.Frame):
         self.canvas = tk.Canvas(self, bg=DarkThemeStyles.PRIMARY_BG,
                               highlightthickness=0)
         self.scrollbar = ttk.Scrollbar(self, orient="vertical",
-                                     command=self.canvas.yview)
+                                     command=self.canvas.yview,
+                                     style="Gray.Vertical.TScrollbar",)
+        
+        
+        
+        
         self.scrollable_frame = tk.Frame(self.canvas,
                                        bg=DarkThemeStyles.PRIMARY_BG)
         
