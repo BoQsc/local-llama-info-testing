@@ -110,10 +110,11 @@ class ScrollableContainer(tk.Frame):
         
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
         
-        # Add middle mouse button scrolling
-        self.canvas.bind('<Button-2>', self.start_scroll)
-        self.canvas.bind('<B2-Motion>', self.do_scroll)
-        self.canvas.bind('<ButtonRelease-2>', self.stop_scroll)
+        # Remove previous bindings that might interfere
+        for widget in [self, self.canvas, self.scrollable_frame]:
+            widget.unbind_all('<MouseWheel>')
+            widget.unbind_all('<Button-4>')
+            widget.unbind_all('<Button-5>')
         
         self.scrollable_frame.bind(
             "<Configure>",
@@ -128,33 +129,27 @@ class ScrollableContainer(tk.Frame):
         
         self.scrollbar.pack(side="right", fill="y")
         self.canvas.pack(side="left", fill="both", expand=True)
-        
-        # Initialize scrolling variables
-        self.scroll_start_y = 0
-        self.is_scrolling = False
-        
-    def start_scroll(self, event):
-        self.is_scrolling = True
-        self.scroll_start_y = event.y
-        
-    def do_scroll(self, event):
-        if not self.is_scrolling:
-            return
-            
-        delta = (self.scroll_start_y - event.y) / self.winfo_height()
-        first, last = self.canvas.yview()
-        new_first = min(max(first + delta, 0.0), 1.0)
-        self.canvas.yview_moveto(new_first)
-        self.scroll_start_y = event.y
-        
-    def stop_scroll(self, event):
-        self.is_scrolling = False
+    
+    def _on_mousewheel(self, event):
+        print(f"ScrollableContainer received mousewheel event: delta={getattr(event, 'delta', 'N/A')}, num={getattr(event, 'num', 'N/A')}")
+        if hasattr(event, 'delta'):
+            self.canvas.yview_scroll(int(-1 * (event.delta/120)), "units")
+        else:
+            # Linux scroll
+            if event.num == 4:
+                self.canvas.yview_scroll(-1, "units")
+            elif event.num == 5:
+                self.canvas.yview_scroll(1, "units")
+        return "break"
         
     def _on_canvas_configure(self, event):
         self.canvas.itemconfig(self.canvas_frame, width=event.width)
+
 class Sidebar(tk.Frame):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, bg=DarkThemeStyles.SIDEBAR_BG, **kwargs)
+        
+        print("Initializing Sidebar")
         
         self.new_chat_btn = ttk.Button(
             self,
@@ -164,15 +159,30 @@ class Sidebar(tk.Frame):
         )
         self.new_chat_btn.pack(fill="x", padx=5, pady=5)
         
-        # Create a ScrollableContainer for conversations
-        self.conversations_container = ScrollableContainer(self)
-        self.conversations_container.pack(fill="both", expand=True, padx=5)
+        # Create container for conversations with scrolling
+        self.scroll_container = ScrollableContainer(self)
+        self.scroll_container.pack(fill="both", expand=True, padx=5)
         
-        self.conversations_frame = self.conversations_container.scrollable_frame
+        self.conversations_frame = self.scroll_container.scrollable_frame
         
-        self.add_conversation("Chat 1")
-        self.add_conversation("Chat 2")
-        self.add_conversation("Chat 3")
+        # Add mousewheel bindings directly to canvas
+        self.scroll_container.canvas.bind('<MouseWheel>', self._on_mousewheel, add="+")
+        self.scroll_container.canvas.bind('<Button-4>', self._on_mousewheel, add="+")
+        self.scroll_container.canvas.bind('<Button-5>', self._on_mousewheel, add="+")
+        
+        # Bind to the frame itself
+        self.bind('<MouseWheel>', self._on_mousewheel, add="+")
+        self.bind('<Button-4>', self._on_mousewheel, add="+")
+        self.bind('<Button-5>', self._on_mousewheel, add="+")
+        
+        print("Adding test conversations")
+        # Add test conversations
+        for i in range(20):
+            self.add_conversation(f"Chat {i+1}")
+    
+    def _on_mousewheel(self, event):
+        print(f"Sidebar received mousewheel event: widget={event.widget}, delta={getattr(event, 'delta', 'N/A')}, num={getattr(event, 'num', 'N/A')}")
+        return self.scroll_container._on_mousewheel(event)
     
     def new_chat(self):
         chat_num = len([child for child in self.conversations_frame.winfo_children() 
@@ -191,10 +201,17 @@ class Sidebar(tk.Frame):
         )
         conv_btn.pack(fill="x", pady=2)
         
+        # Add mousewheel binding to each conversation button
+        conv_btn.bind('<MouseWheel>', self._on_mousewheel, add="+")
+        conv_btn.bind('<Button-4>', self._on_mousewheel, add="+")
+        conv_btn.bind('<Button-5>', self._on_mousewheel, add="+")
+        
         conv_btn.bind("<Enter>", lambda e: conv_btn.configure(
             bg=DarkThemeStyles.SIDEBAR_HOVER))
         conv_btn.bind("<Leave>", lambda e: conv_btn.configure(
             bg=DarkThemeStyles.SIDEBAR_ITEM_BG))
+
+
 class ChatInterface:
     def __init__(self, root):
         self.root = root
