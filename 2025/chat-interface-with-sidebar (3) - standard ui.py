@@ -99,58 +99,73 @@ class ScrollableContainer(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent, bg=DarkThemeStyles.PRIMARY_BG)
         
-        self.canvas = tk.Canvas(self, bg=DarkThemeStyles.PRIMARY_BG,
-                              highlightthickness=0)
-        self.scrollbar = ttk.Scrollbar(self, orient="vertical",
-                                     command=self.canvas.yview,
-                                     style="Gray.Vertical.TScrollbar")
+        # Create canvas with proper background and no highlight
+        self.canvas = tk.Canvas(
+            self,
+            bg=DarkThemeStyles.PRIMARY_BG,
+            highlightthickness=0,
+            bd=0
+        )
         
-        self.scrollable_frame = tk.Frame(self.canvas,
-                                       bg=DarkThemeStyles.PRIMARY_BG)
+        # Create scrollbar with style
+        self.scrollbar = ttk.Scrollbar(
+            self,
+            orient="vertical",
+            command=self.canvas.yview,
+            style="Gray.Vertical.TScrollbar"
+        )
         
+        # Create the frame that will hold the widgets
+        self.scrollable_frame = tk.Frame(
+            self.canvas,
+            bg=DarkThemeStyles.PRIMARY_BG
+        )
+        
+        # Configure the canvas
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
         
-        # Remove previous bindings that might interfere
-        for widget in [self, self.canvas, self.scrollable_frame]:
-            widget.unbind_all('<MouseWheel>')
-            widget.unbind_all('<Button-4>')
-            widget.unbind_all('<Button-5>')
-        
+        # Add bindings for the canvas
         self.scrollable_frame.bind(
             "<Configure>",
             lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
         )
         
-        self.canvas_frame = self.canvas.create_window((0, 0),
-                                                    window=self.scrollable_frame,
-                                                    anchor="nw")
+        # Create window inside canvas
+        self.canvas_frame = self.canvas.create_window(
+            (0, 0),
+            window=self.scrollable_frame,
+            anchor="nw",
+            width=self.canvas.winfo_reqwidth()
+        )
         
-        self.canvas.bind('<Configure>', self._on_canvas_configure)
-        
+        # Pack scrollbar and canvas
         self.scrollbar.pack(side="right", fill="y")
         self.canvas.pack(side="left", fill="both", expand=True)
-    
-    def _on_mousewheel(self, event):
-        print(f"ScrollableContainer received mousewheel event: delta={getattr(event, 'delta', 'N/A')}, num={getattr(event, 'num', 'N/A')}")
-        if hasattr(event, 'delta'):
-            self.canvas.yview_scroll(int(-1 * (event.delta/120)), "units")
-        else:
-            # Linux scroll
-            if event.num == 4:
-                self.canvas.yview_scroll(-1, "units")
-            elif event.num == 5:
-                self.canvas.yview_scroll(1, "units")
-        return "break"
         
+        # Bind to configure events
+        self.canvas.bind('<Configure>', self._on_canvas_configure)
+
     def _on_canvas_configure(self, event):
+        # Update the width of the frame to fill the canvas
         self.canvas.itemconfig(self.canvas_frame, width=event.width)
 
 class Sidebar(tk.Frame):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, bg=DarkThemeStyles.SIDEBAR_BG, **kwargs)
         
-        print("Initializing Sidebar")
+        # Keep track of currently selected conversation
+        self.selected_conversation = None
         
+        # Initialize the UI components
+        self._init_new_chat_button()
+        self._init_scroll_container()
+        self._init_bindings()
+        
+        # Add test conversations
+        for i in range(20):
+            self.add_conversation(f"Chat {i+1}")
+    
+    def _init_new_chat_button(self):
         self.new_chat_btn = ttk.Button(
             self,
             text="+ New Chat",
@@ -158,36 +173,48 @@ class Sidebar(tk.Frame):
             command=self.new_chat
         )
         self.new_chat_btn.pack(fill="x", padx=5, pady=5)
-        
-        # Create container for conversations with scrolling
+    
+    def _init_scroll_container(self):
         self.scroll_container = ScrollableContainer(self)
         self.scroll_container.pack(fill="both", expand=True, padx=5)
-        
         self.conversations_frame = self.scroll_container.scrollable_frame
+    
+    def _init_bindings(self):
+        # Add the scrolling bindings to the Canvas itself
+        self.scroll_container.canvas.bind('<MouseWheel>', self._on_mousewheel)
+        self.scroll_container.canvas.bind('<Button-4>', self._on_mousewheel)
+        self.scroll_container.canvas.bind('<Button-5>', self._on_mousewheel)
         
-        # Add mousewheel bindings directly to canvas
-        self.scroll_container.canvas.bind('<MouseWheel>', self._on_mousewheel, add="+")
-        self.scroll_container.canvas.bind('<Button-4>', self._on_mousewheel, add="+")
-        self.scroll_container.canvas.bind('<Button-5>', self._on_mousewheel, add="+")
-        
-        # Bind to the frame itself
-        self.bind('<MouseWheel>', self._on_mousewheel, add="+")
-        self.bind('<Button-4>', self._on_mousewheel, add="+")
-        self.bind('<Button-5>', self._on_mousewheel, add="+")
-        
-        print("Adding test conversations")
-        # Add test conversations
-        for i in range(20):
-            self.add_conversation(f"Chat {i+1}")
+        # Also bind to the scrollable frame for complete coverage
+        self.conversations_frame.bind('<MouseWheel>', self._on_mousewheel)
+        self.conversations_frame.bind('<Button-4>', self._on_mousewheel)
+        self.conversations_frame.bind('<Button-5>', self._on_mousewheel)
     
     def _on_mousewheel(self, event):
-        print(f"Sidebar received mousewheel event: widget={event.widget}, delta={getattr(event, 'delta', 'N/A')}, num={getattr(event, 'num', 'N/A')}")
-        return self.scroll_container._on_mousewheel(event)
+        canvas = self.scroll_container.canvas
+        
+        # Get the current scroll region
+        _, _, _, scroll_height = canvas.bbox("all")
+        visible_height = canvas.winfo_height()
+        
+        # Only scroll if there's content outside the visible area
+        if visible_height < scroll_height:
+            if event.num == 5 or event.delta < 0:
+                canvas.yview_scroll(1, "units")
+            elif event.num == 4 or event.delta > 0:
+                canvas.yview_scroll(-1, "units")
+        
+        # Prevent event from propagating
+        return "break"
     
-    def new_chat(self):
-        chat_num = len([child for child in self.conversations_frame.winfo_children() 
-                       if isinstance(child, tk.Label)]) + 1
-        self.add_conversation(f"Chat {chat_num}")
+    def _on_conversation_click(self, conversation_label, event):
+        if self.selected_conversation:
+            self.selected_conversation.configure(
+                bg=DarkThemeStyles.SIDEBAR_ITEM_BG
+            )
+        
+        conversation_label.configure(bg=DarkThemeStyles.SIDEBAR_HOVER)
+        self.selected_conversation = conversation_label
     
     def add_conversation(self, title):
         conv_btn = tk.Label(
@@ -201,17 +228,34 @@ class Sidebar(tk.Frame):
         )
         conv_btn.pack(fill="x", pady=2)
         
-        # Add mousewheel binding to each conversation button
-        conv_btn.bind('<MouseWheel>', self._on_mousewheel, add="+")
-        conv_btn.bind('<Button-4>', self._on_mousewheel, add="+")
-        conv_btn.bind('<Button-5>', self._on_mousewheel, add="+")
+        # Bind hover events
+        conv_btn.bind("<Enter>", 
+            lambda e: conv_btn.configure(
+                bg=DarkThemeStyles.SIDEBAR_HOVER if conv_btn != self.selected_conversation 
+                else DarkThemeStyles.SIDEBAR_HOVER
+            )
+        )
+        conv_btn.bind("<Leave>", 
+            lambda e: conv_btn.configure(
+                bg=DarkThemeStyles.SIDEBAR_ITEM_BG if conv_btn != self.selected_conversation 
+                else DarkThemeStyles.SIDEBAR_HOVER
+            )
+        )
         
-        conv_btn.bind("<Enter>", lambda e: conv_btn.configure(
-            bg=DarkThemeStyles.SIDEBAR_HOVER))
-        conv_btn.bind("<Leave>", lambda e: conv_btn.configure(
-            bg=DarkThemeStyles.SIDEBAR_ITEM_BG))
-
-
+        # Bind click event
+        conv_btn.bind("<Button-1>", 
+            lambda e: self._on_conversation_click(conv_btn, e)
+        )
+        
+        # Add mousewheel bindings to the conversation button
+        conv_btn.bind('<MouseWheel>', self._on_mousewheel)
+        conv_btn.bind('<Button-4>', self._on_mousewheel)
+        conv_btn.bind('<Button-5>', self._on_mousewheel)
+    
+    def new_chat(self):
+        chat_num = len([child for child in self.conversations_frame.winfo_children() 
+                       if isinstance(child, tk.Label)]) + 1
+        self.add_conversation(f"Chat {chat_num}")
 class ChatInterface:
     def __init__(self, root):
         self.root = root
