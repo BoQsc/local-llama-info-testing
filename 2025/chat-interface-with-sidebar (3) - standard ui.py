@@ -103,15 +103,17 @@ class ScrollableContainer(tk.Frame):
                               highlightthickness=0)
         self.scrollbar = ttk.Scrollbar(self, orient="vertical",
                                      command=self.canvas.yview,
-                                     style="Gray.Vertical.TScrollbar",)
-        
-        
-        
+                                     style="Gray.Vertical.TScrollbar")
         
         self.scrollable_frame = tk.Frame(self.canvas,
                                        bg=DarkThemeStyles.PRIMARY_BG)
         
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        
+        # Add middle mouse button scrolling
+        self.canvas.bind('<Button-2>', self.start_scroll)
+        self.canvas.bind('<B2-Motion>', self.do_scroll)
+        self.canvas.bind('<ButtonRelease-2>', self.stop_scroll)
         
         self.scrollable_frame.bind(
             "<Configure>",
@@ -127,9 +129,29 @@ class ScrollableContainer(tk.Frame):
         self.scrollbar.pack(side="right", fill="y")
         self.canvas.pack(side="left", fill="both", expand=True)
         
+        # Initialize scrolling variables
+        self.scroll_start_y = 0
+        self.is_scrolling = False
+        
+    def start_scroll(self, event):
+        self.is_scrolling = True
+        self.scroll_start_y = event.y
+        
+    def do_scroll(self, event):
+        if not self.is_scrolling:
+            return
+            
+        delta = (self.scroll_start_y - event.y) / self.winfo_height()
+        first, last = self.canvas.yview()
+        new_first = min(max(first + delta, 0.0), 1.0)
+        self.canvas.yview_moveto(new_first)
+        self.scroll_start_y = event.y
+        
+    def stop_scroll(self, event):
+        self.is_scrolling = False
+        
     def _on_canvas_configure(self, event):
         self.canvas.itemconfig(self.canvas_frame, width=event.width)
-
 class Sidebar(tk.Frame):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, bg=DarkThemeStyles.SIDEBAR_BG, **kwargs)
@@ -142,18 +164,19 @@ class Sidebar(tk.Frame):
         )
         self.new_chat_btn.pack(fill="x", padx=5, pady=5)
         
-        self.conversations_frame = tk.Frame(
-            self,
-            bg=DarkThemeStyles.SIDEBAR_BG
-        )
-        self.conversations_frame.pack(fill="both", expand=True, padx=5)
+        # Create a ScrollableContainer for conversations
+        self.conversations_container = ScrollableContainer(self)
+        self.conversations_container.pack(fill="both", expand=True, padx=5)
+        
+        self.conversations_frame = self.conversations_container.scrollable_frame
         
         self.add_conversation("Chat 1")
         self.add_conversation("Chat 2")
         self.add_conversation("Chat 3")
     
     def new_chat(self):
-        chat_num = len(self.conversations_frame.winfo_children()) + 1
+        chat_num = len([child for child in self.conversations_frame.winfo_children() 
+                       if isinstance(child, tk.Label)]) + 1
         self.add_conversation(f"Chat {chat_num}")
     
     def add_conversation(self, title):
@@ -172,7 +195,6 @@ class Sidebar(tk.Frame):
             bg=DarkThemeStyles.SIDEBAR_HOVER))
         conv_btn.bind("<Leave>", lambda e: conv_btn.configure(
             bg=DarkThemeStyles.SIDEBAR_ITEM_BG))
-
 class ChatInterface:
     def __init__(self, root):
         self.root = root
