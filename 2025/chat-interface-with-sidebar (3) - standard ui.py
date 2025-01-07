@@ -19,6 +19,7 @@ class DarkThemeStyles:
     @classmethod
     def configure_styles(cls):
         style = ttk.Style()
+        style.theme_use('clam')
         style.configure("Dark.TButton",
                        background=cls.BUTTON_BG,
                        foreground=cls.TEXT_COLOR,
