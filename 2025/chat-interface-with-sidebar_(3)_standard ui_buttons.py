@@ -217,8 +217,23 @@ class Sidebar(tk.Frame):
         self.selected_conversation = conversation_label
     
     def add_conversation(self, title):
-        conv_btn = tk.Label(
+        # Main container for the conversation item
+        conv_container = tk.Frame(
             self.conversations_frame,
+            bg=DarkThemeStyles.SIDEBAR_ITEM_BG,
+        )
+        conv_container.pack(fill="x", pady=2)
+        
+        # Container for the conversation title
+        conv_title_frame = tk.Frame(
+            conv_container,
+            bg=DarkThemeStyles.SIDEBAR_ITEM_BG
+        )
+        conv_title_frame.pack(fill="x", expand=True)
+        
+        # Conversation label
+        conv_label = tk.Label(
+            conv_title_frame,
             text=title,
             bg=DarkThemeStyles.SIDEBAR_ITEM_BG,
             fg=DarkThemeStyles.TEXT_COLOR,
@@ -226,32 +241,127 @@ class Sidebar(tk.Frame):
             pady=5,
             cursor="hand2"
         )
-        conv_btn.pack(fill="x", pady=2)
+        conv_label.pack(side="left", fill="x", expand=True)
         
-        # Bind hover events
-        conv_btn.bind("<Enter>", 
-            lambda e: conv_btn.configure(
-                bg=DarkThemeStyles.SIDEBAR_HOVER if conv_btn != self.selected_conversation 
-                else DarkThemeStyles.SIDEBAR_HOVER
-            )
+        # Button container
+        button_frame = tk.Frame(
+            conv_container,
+            bg=DarkThemeStyles.SIDEBAR_ITEM_BG
         )
-        conv_btn.bind("<Leave>", 
-            lambda e: conv_btn.configure(
-                bg=DarkThemeStyles.SIDEBAR_ITEM_BG if conv_btn != self.selected_conversation 
-                else DarkThemeStyles.SIDEBAR_HOVER
-            )
+        button_frame.pack(fill="x")
+        
+        # Rename button
+        rename_btn = ttk.Button(
+            button_frame,
+            text="✎",
+            width=3,
+            style="Sidebar.TButton",
+            command=lambda: self.rename_conversation(conv_label)
         )
+        rename_btn.pack(side="left", padx=(10, 2), pady=2)
+        
+        # Delete button
+        delete_btn = ttk.Button(
+            button_frame,
+            text="✖",
+            width=3,
+            style="Sidebar.TButton",
+            command=lambda: self.delete_conversation(conv_container)
+        )
+        delete_btn.pack(side="left", padx=2, pady=2)
+        
+        # Bind hover events for the entire container
+        for widget in [conv_container, conv_label, button_frame]:
+            widget.bind("<Enter>", 
+                lambda e: self._on_conversation_hover(conv_container, True))
+            widget.bind("<Leave>", 
+                lambda e: self._on_conversation_hover(conv_container, False))
         
         # Bind click event
-        conv_btn.bind("<Button-1>", 
-            lambda e: self._on_conversation_click(conv_btn, e)
-        )
+        conv_label.bind("<Button-1>", 
+            lambda e: self._on_conversation_click(conv_container, e))
         
-        # Add mousewheel bindings to the conversation button
-        conv_btn.bind('<MouseWheel>', self._on_mousewheel)
-        conv_btn.bind('<Button-4>', self._on_mousewheel)
-        conv_btn.bind('<Button-5>', self._on_mousewheel)
+        # Add mousewheel bindings
+        for widget in [conv_container, conv_label, button_frame, rename_btn, delete_btn]:
+            widget.bind('<MouseWheel>', self._on_mousewheel)
+            widget.bind('<Button-4>', self._on_mousewheel)
+            widget.bind('<Button-5>', self._on_mousewheel)
     
+    def _on_conversation_hover(self, container, entering):
+        if container != self.selected_conversation:
+            bg_color = (DarkThemeStyles.SIDEBAR_HOVER if entering 
+                       else DarkThemeStyles.SIDEBAR_ITEM_BG)
+            container.configure(bg=bg_color)
+            for widget in container.winfo_children():
+                widget.configure(bg=bg_color)
+                if isinstance(widget, tk.Frame):
+                    for child in widget.winfo_children():
+                        if isinstance(child, tk.Label):
+                            child.configure(bg=bg_color)
+    
+    def _on_conversation_click(self, container, event):
+        if self.selected_conversation:
+            self._on_conversation_hover(self.selected_conversation, False)
+        
+        bg_color = DarkThemeStyles.SIDEBAR_HOVER
+        container.configure(bg=bg_color)
+        for widget in container.winfo_children():
+            widget.configure(bg=bg_color)
+            if isinstance(widget, tk.Frame):
+                for child in widget.winfo_children():
+                    if isinstance(child, tk.Label):
+                        child.configure(bg=bg_color)
+        
+        self.selected_conversation = container
+    
+    def rename_conversation(self, label):
+        # Create a popup window for renaming
+        popup = tk.Toplevel(self)
+        popup.title("Rename Conversation")
+        popup.configure(bg=DarkThemeStyles.SECONDARY_BG)
+        
+        # Position the popup near the parent window
+        x = self.winfo_rootx() + 50
+        y = self.winfo_rooty() + 50
+        popup.geometry(f"+{x}+{y}")
+        
+        # Entry field for new name
+        entry = tk.Entry(
+            popup,
+            bg=DarkThemeStyles.SECONDARY_BG,
+            fg=DarkThemeStyles.TEXT_COLOR,
+            insertbackground=DarkThemeStyles.TEXT_COLOR
+        )
+        entry.insert(0, label.cget("text"))
+        entry.pack(padx=10, pady=5)
+        entry.select_range(0, tk.END)
+        
+        def save_name():
+            new_name = entry.get().strip()
+            if new_name:
+                label.configure(text=new_name)
+                popup.destroy()
+        
+        # Save button
+        save_btn = ttk.Button(
+            popup,
+            text="Save",
+            style="Dark.TButton",
+            command=save_name
+        )
+        save_btn.pack(pady=5)
+        
+        # Handle Enter key
+        entry.bind('<Return>', lambda e: save_name())
+        
+        # Focus the entry widget
+        entry.focus_set()
+    
+    def delete_conversation(self, container):
+        container.destroy()
+        if container == self.selected_conversation:
+            self.selected_conversation = None
+
     def new_chat(self):
         chat_num = len([child for child in self.conversations_frame.winfo_children() 
                        if isinstance(child, tk.Label)]) + 1
