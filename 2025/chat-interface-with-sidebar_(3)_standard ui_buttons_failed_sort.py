@@ -155,6 +155,7 @@ class Sidebar(tk.Frame):
         
         # Keep track of currently selected conversation
         self.selected_conversation = None
+        self.conversation_titles = []
         
         # Initialize the UI components
         self._init_new_chat_button()
@@ -164,7 +165,7 @@ class Sidebar(tk.Frame):
         # Add test conversations
         for i in range(20):
             self.add_conversation(f"Chat {i+1}")
-    
+
     def _init_new_chat_button(self):
         self.new_chat_btn = ttk.Button(
             self,
@@ -286,7 +287,10 @@ class Sidebar(tk.Frame):
             widget.bind('<MouseWheel>', self._on_mousewheel)
             widget.bind('<Button-4>', self._on_mousewheel)
             widget.bind('<Button-5>', self._on_mousewheel)
-    
+        
+        self.conversation_titles.append((title, conv_container))
+
+
     def _on_conversation_hover(self, container, entering):
         if container != self.selected_conversation:
             bg_color = (DarkThemeStyles.SIDEBAR_HOVER if entering 
@@ -364,8 +368,72 @@ class Sidebar(tk.Frame):
 
     def new_chat(self):
         chat_num = len([child for child in self.conversations_frame.winfo_children() 
-                       if isinstance(child, tk.Label)]) + 1
+                       if isinstance(child, tk.Frame)]) + 1
         self.add_conversation(f"Chat {chat_num}")
+
+
+    def sort_conversations(self):
+        print("Sorting conversations...")
+        conversation_titles = [(child, child.winfo_children()[0].winfo_children()[0].cget('text')) for child in self.conversations_frame.winfo_children() 
+                            if isinstance(child, tk.Frame)]
+        print("Conversation titles:", conversation_titles)
+        conversation_titles.sort(key=lambda x: x[1], reverse=True)
+        print("Sorted conversation titles:", conversation_titles)
+        for widget in self.conversations_frame.winfo_children():
+            widget.destroy()
+        for conversation in conversation_titles:
+            print("Packing conversation:", conversation[1])
+            new_conv_container = tk.Frame(
+                self.conversations_frame,
+                bg=DarkThemeStyles.SIDEBAR_ITEM_BG,
+            )
+            new_conv_container.pack(fill="x", pady=2)
+            
+            # Container for the conversation title
+            conv_title_frame = tk.Frame(
+                new_conv_container,
+                bg=DarkThemeStyles.SIDEBAR_ITEM_BG
+            )
+            conv_title_frame.pack(fill="x", expand=True)
+            
+            # Conversation label
+            conv_label = tk.Label(
+                conv_title_frame,
+                text=conversation[1],
+                bg=DarkThemeStyles.SIDEBAR_ITEM_BG,
+                fg=DarkThemeStyles.TEXT_COLOR,
+                padx=10,
+                pady=5,
+                cursor="hand2"
+            )
+            conv_label.pack(side="left", fill="x", expand=True)
+            
+            # Button container
+            button_frame = tk.Frame(
+                new_conv_container,
+                bg=DarkThemeStyles.SIDEBAR_ITEM_BG
+            )
+            button_frame.pack(fill="x")
+            
+            # Rename button
+            rename_btn = ttk.Button(
+                button_frame,
+                text="✎",
+                width=3,
+                style="Sidebar.TButton",
+                command=lambda label=conv_label: self.rename_conversation(label)
+            )
+            rename_btn.pack(side="left", padx=(10, 2), pady=2)
+            
+            # Delete button
+            delete_btn = ttk.Button(
+                button_frame,
+                text="✖",
+                width=3,
+                style="Sidebar.TButton",
+                command=lambda container=new_conv_container: self.delete_conversation(container)
+            )
+            delete_btn.pack(side="left", padx=2, pady=2)
 class ChatInterface:
     def __init__(self, root):
         self.root = root
@@ -451,6 +519,8 @@ class ChatInterface:
         
         self.input_box.bind('<Return>', lambda e: self.send_message())
         self.input_box.bind('<Shift-Return>', lambda e: 'break')
+        
+        self.sidebar.sort_conversations()
     
     def toggle_sidebar(self):
         if self.sidebar_visible:
